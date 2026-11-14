@@ -59,6 +59,21 @@
         <div class="melding" id="melding-backup"></div>
       </section>
 
+      <!-- WhatsApp-sjabloon -->
+      <section class="kaart">
+        <h2>WhatsApp-bericht</h2>
+        <p class="uitleg">De standaardtekst van het bericht aan medewerkers. Woorden tussen { } worden automatisch ingevuld.
+          Een regel waarvan het invulveld leeg is, valt vanzelf weg.</p>
+        <textarea id="wa-sjabloon" rows="16" style="width:100%; font-size:14px"></textarea>
+        <p class="zacht" style="font-size:13px">Invulvelden: {NAAM} {Naam} {DAG} {DAGKORT} {DATUM} {STARTTIJD} {EINDTIJD} {KLANT} {ADRES} {ROUTE}
+          {WERKZAAMHEDEN} {MEENEMEN} {VOERTUIG} {SAMEN} {BIJZONDERHEDEN}</p>
+        <div class="knoppen">
+          <button class="knop" id="wa-opslaan">Opslaan</button>
+          <button class="knop tweede" id="wa-standaard">Standaardtekst terugzetten</button>
+        </div>
+        <div class="melding" id="melding-wa"></div>
+      </section>
+
       <!-- Overzicht -->
       <section class="kaart">
         <h2>Opgeslagen gegevens</h2>
@@ -81,6 +96,7 @@
   <script src="js/opslag.js"></script>
   <script src="js/keuzelijsten.js"></script>
   <script src="js/voorbeeld.js"></script>
+  <script src="js/whatsapp.js"></script>
   <script>
   // Alleen uitvoeren als deze rol de pagina mag zien
   if (!document.body.classList.contains("geen-toegang")) {
@@ -91,7 +107,7 @@
       middag_van: "12:30",  middag_tot: "16:30"
     };
 
-    const NAMEN = { instellingen: "Instellingen", medewerkers: "Medewerkers", klussen: "Werkopdrachten", afwezigheid: "Afwezigheid", voertuigen: "Voertuigen", gereedschap: "Gereedschap", bestanden: "Foto's en documenten" }; // wordt aangevuld in latere stappen
+    const NAMEN = { instellingen: "Instellingen", medewerkers: "Medewerkers", klussen: "Werkopdrachten", afwezigheid: "Afwezigheid", voertuigen: "Voertuigen", gereedschap: "Gereedschap", bestanden: "Foto's en documenten", whatsapp: "WhatsApp-berichten" }; // wordt aangevuld in latere stappen
 
     function toon(id, soort, tekst) {
       const el = document.getElementById(id);
@@ -168,6 +184,7 @@
         toon("melding-backup", "goed", "Back-up van " +
           new Date(backup.gemaakt_op).toLocaleString("nl-NL") + " is teruggezet.");
         laadDagdelen();
+        laadSjabloon();
         laadTellingen();
       } catch (fout) {
         toon("melding-backup", "fout", "Terugzetten mislukt: " +
@@ -181,7 +198,23 @@
       await Opslag.wisAlles();
       toon("melding-wissen", "info", "Alle gegevens zijn gewist. De dagdelen staan weer op de standaardtijden. De voorbeeldmedewerkers komen terug zodra je Medewerkers opent.");
       laadDagdelen();
+      laadSjabloon();
       laadTellingen();
+    });
+
+    // ----- WhatsApp-sjabloon -----
+    async function laadSjabloon() { document.getElementById("wa-sjabloon").value = await WhatsApp.sjabloon(); }
+    document.getElementById("wa-opslaan").addEventListener("click", async function () {
+      const tekst = document.getElementById("wa-sjabloon").value.trim();
+      if (!tekst) { toon("melding-wa", "fout", "De tekst mag niet leeg zijn."); return; }
+      await Opslag.bewaar("instellingen", { id: "whatsapp", sjabloon: tekst });
+      toon("melding-wa", "goed", "Opgeslagen. Nieuwe berichten gebruiken deze tekst.");
+      laadTellingen();
+    });
+    document.getElementById("wa-standaard").addEventListener("click", async function () {
+      document.getElementById("wa-sjabloon").value = WhatsApp.STANDAARD_SJABLOON;
+      await Opslag.bewaar("instellingen", { id: "whatsapp", sjabloon: WhatsApp.STANDAARD_SJABLOON });
+      toon("melding-wa", "goed", "De standaardtekst staat er weer.");
     });
 
     // ----- Voorbeeldmedewerkers opnieuw -----
@@ -193,6 +226,7 @@
     });
 
     laadDagdelen();
+    laadSjabloon();
     laadTellingen();
   }
   </script>

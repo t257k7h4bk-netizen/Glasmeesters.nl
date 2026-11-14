@@ -374,6 +374,19 @@ input:disabled, select:disabled, textarea:disabled { background: var(--achtergro
 .kijker-naam { color: #fff; text-align: center; padding: 8px; font-size: 14px; }
 .kijker-sluit { position: fixed; top: 12px; right: 16px; color: #fff; font-size: 28px; }
 
+.wa-status { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; font-size: 15px; }
+.wa-regel { display: flex; gap: 10px; flex-wrap: wrap; }
+.wa-knop { background: #25A35A; color: #fff; }
+.wa-knop:hover { background: #1E8A4C; }
+.wa-kaart { border: 1px solid var(--lijn); border-radius: var(--rand); padding: 14px; margin-bottom: 14px; }
+.wa-kop { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+.wa-tekst { width: 100%; font-family: var(--lettertype); font-size: 15px; line-height: 1.4; background: #F0FAF3; }
+.wa-acties { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; }
+.wa-open { background: #25A35A; color: #fff; }
+.wa-open:hover { background: #1E8A4C; }
+.wa-open.uit { background: var(--lijn); color: var(--tekst-zacht); cursor: not-allowed; pointer-events: none; }
+.groen-tekst { color: var(--groen); font-weight: 600; }
+
 .materialen { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
 .materiaal { display: grid; grid-template-columns: 90px 100px 1fr 40px; gap: 6px; }
 .materiaal input { width: 100%; min-width: 0; }

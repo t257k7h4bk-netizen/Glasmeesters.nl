@@ -32,6 +32,9 @@ const Werkopdracht = (function () {
   let bestanden = [];             // bestanden van deze opdracht
   let urls = [];                  // tijdelijke adressen voor miniaturen
 
+  let naWhatsApp = false;         // na opslaan meteen het WhatsApp-venster openen
+  let berichten = [];             // vastgelegde WhatsApp-berichten van deze opdracht
+
   const MAX_DOCUMENT = 10 * 1024 * 1024;   // 10 MB
   const MAX_FOTO_PIXELS = 1600;            // foto's worden verkleind tot max. 1600 pixels
   let klaarGezet = false;
@@ -233,7 +236,10 @@ const Werkopdracht = (function () {
             '<span class="zacht" id="wo-bezig"></span>' +
           '</div>' +
           '<div class="bestanden" id="wo-bestanden"></div>' +
-          '<p class="zacht">WhatsApp volgt in stap 3d. Rijbewijs-controles bij voertuig en aanhanger volgen in fase 4.</p>' +
+          '<h3 class="sectie">WhatsApp</h3>' +
+          '<div id="wo-wa-status" class="wa-status"></div>' +
+          '<button type="button" class="knop wa-knop wo-alleen-bewerk" id="wo-wa-knop">💬 Opslaan en WhatsApp sturen</button>' +
+          '<p class="zacht">Rijbewijs-controles bij voertuig en aanhanger volgen in fase 4.</p>' +
           '<div class="melding" id="wo-melding"></div>' +
         '</div>' +
         '<div class="venster-voet wo-bewerk">' +
@@ -328,6 +334,53 @@ const Werkopdracht = (function () {
       if (isNieuw && !isOpgeslagen) {
         for (const b of bestanden) await Opslag.verwijder("bestanden", b.id);
       }
+    });
+
+    // WhatsApp-venster
+    const wa = document.createElement("dialog");
+    wa.id = "wo-wa";
+    wa.className = "venster breed-venster";
+    wa.innerHTML =
+      '<div class="venster-kop"><div><h2>WhatsApp-berichten</h2><span class="zacht" id="wo-wa-sub"></span></div>' +
+      '<button type="button" class="sluit" data-wa-sluit aria-label="Sluiten">✕</button></div>' +
+      '<div class="venster-inhoud">' +
+        '<p class="uitleg">Controleer het bericht en pas het eventueel aan. Tik daarna op <strong>Open in WhatsApp</strong> en druk in WhatsApp op Verzenden. Doe dit per medewerker.</p>' +
+        '<div id="wo-wa-lijst"></div>' +
+      '</div>' +
+      '<div class="venster-voet"><span class="ruimte"></span><button type="button" class="knop" data-wa-sluit>Klaar</button></div>';
+    document.body.appendChild(wa);
+    wa.querySelectorAll("[data-wa-sluit]").forEach(function (k) { k.addEventListener("click", function () { wa.close(); }); });
+    wa.addEventListener("input", function (e) {
+      if (!e.target.classList.contains("wa-tekst")) return;
+      const kaart = e.target.closest(".wa-kaart");
+      const knop = kaart.querySelector(".wa-open");
+      if (knop && knop.dataset.tel) knop.href = WhatsApp.link(knop.dataset.tel, e.target.value);
+    });
+    wa.addEventListener("click", async function (e) {
+      const open = e.target.closest(".wa-open");
+      if (open && !open.classList.contains("uit")) {
+        const kaart = open.closest(".wa-kaart");
+        await Opslag.bewaar("whatsapp", {
+          opdracht: kaart.dataset.opdracht, medewerker: kaart.dataset.medewerker,
+          tekst: kaart.querySelector(".wa-tekst").value, geopend_op: new Date().toISOString(),
+          door: typeof huidigeRol === "function" ? huidigeRol() : "", status: "geopend"
+        });
+        await laadBerichten(kaart.dataset.opdracht);
+        kaart.querySelector(".wa-kaart-status").innerHTML = statusTekst(kaart.dataset.medewerker);
+        return;
+      }
+      const kopieer = e.target.closest(".wa-kopieer");
+      if (kopieer) {
+        const tekst = kopieer.closest(".wa-kaart").querySelector(".wa-tekst").value;
+        try { await navigator.clipboard.writeText(tekst); kopieer.textContent = "Gekopieerd ✓"; }
+        catch (fout) { kopieer.textContent = "Kopiëren lukt niet"; }
+        setTimeout(function () { kopieer.textContent = "Kopieer tekst"; }, 2000);
+      }
+    });
+
+    $("wo-wa-knop").addEventListener("click", function () {
+      naWhatsApp = true;
+      $("wo-form").requestSubmit();
     });
 
     $("wo-form").addEventListener("submit", opslaan);
@@ -559,6 +612,65 @@ const Werkopdracht = (function () {
     }
   }
 
+  // ---------- WhatsApp ----------
+  async function laadBerichten(id) {
+    berichten = (await Opslag.alle("whatsapp")).filter(function (b) { return b.opdracht === id; })
+      .sort(function (a, b) { return (b.geopend_op || "").localeCompare(a.geopend_op || ""); });
+  }
+
+  function statusTekst(medewerkerId) {
+    const laatste = berichten.find(function (b) { return b.medewerker === medewerkerId; });
+    if (!laatste) return '<span class="zacht">Nog niet verstuurd</span>';
+    const t = new Date(laatste.geopend_op);
+    return '<span class="groen-tekst">✓ Geopend in WhatsApp op ' +
+      t.toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" }) + " om " +
+      t.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" }) + '</span>';
+  }
+
+  function tekenWaStatus(o) {
+    const el = $("wo-wa-status");
+    const ids = (o && o.medewerkers) || [];
+    if (!ids.length) { el.innerHTML = '<span class="zacht">Kies eerst medewerkers en een datum.</span>'; return; }
+    el.innerHTML = ids.map(function (id) {
+      const m = medewerker(id);
+      return '<div class="wa-regel"><strong>' + esc(m ? naam(m) : "Onbekend") + '</strong> ' + statusTekst(id) + '</div>';
+    }).join("");
+  }
+
+  async function openWhatsApp(o) {
+    await laadBerichten(o.id);
+    const tekst = await WhatsApp.sjabloon();
+    $("wo-wa-sub").textContent = "Opdracht " + (o.nummer || "") + " · " + o.klant;
+    const lijst = $("wo-wa-lijst");
+    if (!o.datum || !(o.medewerkers || []).length) {
+      lijst.innerHTML = '<div class="melding zichtbaar waarschuwing">Geef de opdracht eerst een datum en minstens één medewerker.</div>';
+      $("wo-wa").showModal();
+      return;
+    }
+    lijst.innerHTML = o.medewerkers.map(function (id) {
+      const m = medewerker(id);
+      if (!m) return "";
+      const b = WhatsApp.bericht(tekst, o, m, ctx);
+      let probleem = "";
+      if (!m.telefoon) probleem = "Er is geen telefoonnummer ingevuld bij " + m.voornaam + ". Vul het in bij Medewerkers.";
+      else if (!WhatsApp.isGeldig(m.telefoon)) probleem = "Het telefoonnummer van " + m.voornaam + " (" + m.telefoon + ") klopt niet.";
+      else if (WhatsApp.isVoorbeeldnummer(m.telefoon)) probleem = "Dit is een verzonnen voorbeeldnummer. Wil je testen? Vul bij Medewerkers je eigen 06-nummer in bij " + m.voornaam + ".";
+      return '<div class="wa-kaart" data-opdracht="' + o.id + '" data-medewerker="' + m.id + '">' +
+               '<div class="wa-kop"><strong>' + esc(naam(m)) + '</strong><span class="zacht">' + esc(m.telefoon || "geen nummer") + '</span></div>' +
+               '<textarea class="wa-tekst" rows="14">' + esc(b) + '</textarea>' +
+               (probleem ? '<div class="melding zichtbaar waarschuwing">' + esc(probleem) + '</div>' : "") +
+               '<div class="wa-acties">' +
+                 '<a class="knop wa-open' + (probleem ? " uit" : "") + '" ' +
+                   (probleem ? 'aria-disabled="true"' : 'href="' + esc(WhatsApp.link(m.telefoon, b)) + '" target="_blank" rel="noopener" data-tel="' + esc(m.telefoon) + '"') +
+                   '>💬 Open in WhatsApp</a>' +
+                 '<button type="button" class="knop tweede wa-kopieer">Kopieer tekst</button>' +
+                 '<span class="wa-kaart-status">' + statusTekst(m.id) + '</span>' +
+               '</div>' +
+             '</div>';
+    }).join("");
+    $("wo-wa").showModal();
+  }
+
   function melding(soort, html) {
     const el = $("wo-melding");
     el.className = "melding" + (html ? " zichtbaar " + soort : "");
@@ -583,6 +695,8 @@ const Werkopdracht = (function () {
     gekozen = (o.medewerkers || []).slice();
     gekozenGereedschap = (o.gereedschap || []).slice();
     opdrachtId = opdracht ? opdracht.id : Opslag.nieuwId();
+    naWhatsApp = false;
+    berichten = [];
     isNieuw = !opdracht;
     isOpgeslagen = false;
     bestanden = [];
@@ -625,6 +739,8 @@ const Werkopdracht = (function () {
     tekenMaterialen();
     tekenBestanden();
     laadBestanden();
+    tekenWaStatus(o);
+    if (opdracht) laadBerichten(opdracht.id).then(function () { tekenWaStatus(o); });
     $("wo-bestand-knoppen").hidden = !(ctx.magBewerken || ctx.magFotos);
     document.querySelectorAll(".wo-alleen-bewerk").forEach(function (el) { el.hidden = !ctx.magBewerken; });
     $("wo-foto").disabled = false; $("wo-document").disabled = false;
@@ -693,6 +809,7 @@ const Werkopdracht = (function () {
       else ctx.toast("Opdracht " + o.nummer + " (" + o.klant + ") opgeslagen.", "goed");
     }
     if (ctx.naOpslaan) await ctx.naOpslaan(bewaard);
+    if (naWhatsApp) { naWhatsApp = false; await openWhatsApp(bewaard); }
   }
 
   async function verwijderen() {
