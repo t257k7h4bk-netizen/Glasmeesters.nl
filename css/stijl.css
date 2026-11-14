@@ -82,8 +82,14 @@ a { color: var(--blauw); }
 .menu nav a.actief { background: var(--goud); color: var(--blauw-donker); font-weight: 600; }
 .menu nav .icoon { width: 22px; text-align: center; font-size: 18px; }
 
+.rolkeuze { margin-top: auto; padding: 16px 4px 0; }
+.rolkeuze label { display: block; font-size: 12px; color: rgba(255, 255, 255, 0.75); margin-bottom: 6px; }
+.rolkeuze label span { color: var(--goud); }
+.rolkeuze select { width: 100%; }
+
+.rolbalk { display: none; }
+
 .menu .versie {
-  margin-top: auto;
   font-size: 12px;
   color: rgba(255, 255, 255, 0.55);
   text-align: center;
@@ -162,6 +168,47 @@ h2 { font-size: 19px; margin: 28px 0 12px; color: var(--blauw-donker); }
 .knop:hover { background: var(--goud-donker); }
 .knop.tweede { background: var(--wit); color: var(--blauw); border: 1px solid var(--blauw); }
 
+/* ---------- Formulieren ---------- */
+
+select, input, textarea {
+  font: inherit;
+  font-size: 16px; /* voorkomt inzoomen op iPhone/iPad */
+  padding: 9px 10px;
+  border: 1px solid var(--lijn);
+  border-radius: 8px;
+  background: var(--wit);
+  color: var(--tekst);
+}
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--goud); border-color: var(--goud); }
+
+.veld { margin-bottom: 14px; }
+.veld label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.rij { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.knoppen { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+
+.knop.gevaar { background: var(--wit); color: var(--rood); border: 1px solid var(--rood); }
+.knop.gevaar:hover { background: #FBEDEB; }
+
+.melding {
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 14px 0 0;
+  font-size: 15px;
+  display: none;
+}
+.melding.zichtbaar { display: block; }
+.melding.goed { background: #E7F4EC; color: #1D5E3A; }
+.melding.fout { background: #FBEDEB; color: #8E2A20; }
+.melding.info { background: #EAF1F7; color: var(--blauw-donker); }
+
+.kaarten { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.kaart h2 { margin-top: 0; }
+.uitleg { color: var(--tekst-zacht); font-size: 15px; margin: 0 0 14px; }
+
+.tabel { width: 100%; border-collapse: collapse; font-size: 15px; }
+.tabel td, .tabel th { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--lijn); }
+.tabel th { color: var(--tekst-zacht); font-weight: 600; }
+
 /* ---------- Telefoon: menu onderaan ---------- */
 
 @media (max-width: 760px) {
@@ -174,7 +221,17 @@ h2 { font-size: 19px; margin: 28px 0 12px; color: var(--blauw-donker); }
     overflow: hidden;
     z-index: 10;
   }
-  .logo, .menu .versie { display: none; }
+  .logo, .menu .versie, .rolkeuze { display: none; }
+  .rolbalk {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--tekst-zacht);
+    margin-bottom: 14px;
+  }
+  .rolbalk select { padding: 4px 8px; }
+  .kaarten { grid-template-columns: 1fr; }
   .menu nav { display: flex; width: 100%; overflow-x: auto; }
   .menu nav a {
     flex-direction: column;

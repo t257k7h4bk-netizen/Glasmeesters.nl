@@ -14,12 +14,176 @@
 
   <main class="inhoud">
     <h1>Beheer</h1>
-    <p class="ondertitel">Instellingen, keuzelijsten, back-ups en het logboek.</p>
-    <div class="binnenkort">
-      Dit onderdeel bouwen we in <strong>stap 2b</strong>.
+    <p class="ondertitel">Instellingen en back-ups. Alleen zichtbaar voor de beheerder.</p>
+
+    <div class="kaarten">
+
+      <!-- Dagdelen -->
+      <section class="kaart">
+        <h2>Dagdelen</h2>
+        <p class="uitleg">Deze tijden gebruikt de planning als je een klus voor een heel dagdeel inplant.</p>
+        <form id="dagdelen">
+          <div class="veld">
+            <label>Ochtend</label>
+            <div class="rij">
+              <input type="time" id="ochtend-van" step="900" required> tot
+              <input type="time" id="ochtend-tot" step="900" required>
+            </div>
+          </div>
+          <div class="veld">
+            <label>Middag</label>
+            <div class="rij">
+              <input type="time" id="middag-van" step="900" required> tot
+              <input type="time" id="middag-tot" step="900" required>
+            </div>
+          </div>
+          <div class="knoppen">
+            <button class="knop" type="submit">Opslaan</button>
+          </div>
+          <div class="melding" id="melding-dagdelen"></div>
+        </form>
+      </section>
+
+      <!-- Back-up -->
+      <section class="kaart">
+        <h2>Back-up</h2>
+        <p class="uitleg">
+          Alle gegevens staan nu alleen op dit apparaat. Download regelmatig een back-up en bewaar die
+          op een veilige plek, bijvoorbeeld in iCloud Drive of OneDrive.
+        </p>
+        <div class="knoppen">
+          <button class="knop" id="download">Back-up downloaden</button>
+          <label class="knop tweede" for="bestand">Back-up terugzetten</label>
+          <input type="file" id="bestand" accept=".json,application/json" hidden>
+        </div>
+        <div class="melding" id="melding-backup"></div>
+      </section>
+
+      <!-- Overzicht -->
+      <section class="kaart">
+        <h2>Opgeslagen gegevens</h2>
+        <p class="uitleg">Wat er op dit apparaat bewaard is.</p>
+        <table class="tabel">
+          <thead><tr><th>Onderdeel</th><th>Aantal</th></tr></thead>
+          <tbody id="tellingen"><tr><td colspan="2">Bezig met laden…</td></tr></tbody>
+        </table>
+        <div class="knoppen">
+          <button class="knop gevaar" id="wissen">Alle gegevens wissen</button>
+        </div>
+        <div class="melding" id="melding-wissen"></div>
+      </section>
+
     </div>
   </main>
 
   <script src="js/layout.js"></script>
+  <script src="js/opslag.js"></script>
+  <script>
+  // Alleen uitvoeren als deze rol de pagina mag zien
+  if (!document.body.classList.contains("geen-toegang")) {
+    // Standaardtijden uit het ontwerp
+    const STANDAARD_DAGDELEN = {
+      id: "dagdelen",
+      ochtend_van: "07:30", ochtend_tot: "12:00",
+      middag_van: "12:30",  middag_tot: "16:30"
+    };
+
+    const NAMEN = { instellingen: "Instellingen" }; // wordt aangevuld in latere stappen
+
+    function toon(id, soort, tekst) {
+      const el = document.getElementById(id);
+      el.className = "melding zichtbaar " + soort;
+      el.textContent = tekst;
+    }
+
+    // ----- Dagdelen -----
+    async function laadDagdelen() {
+      const d = (await Opslag.haal("instellingen", "dagdelen")) || STANDAARD_DAGDELEN;
+      document.getElementById("ochtend-van").value = d.ochtend_van;
+      document.getElementById("ochtend-tot").value = d.ochtend_tot;
+      document.getElementById("middag-van").value = d.middag_van;
+      document.getElementById("middag-tot").value = d.middag_tot;
+    }
+
+    document.getElementById("dagdelen").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const d = {
+        id: "dagdelen",
+        ochtend_van: document.getElementById("ochtend-van").value,
+        ochtend_tot: document.getElementById("ochtend-tot").value,
+        middag_van: document.getElementById("middag-van").value,
+        middag_tot: document.getElementById("middag-tot").value
+      };
+      if (d.ochtend_van >= d.ochtend_tot || d.middag_van >= d.middag_tot) {
+        toon("melding-dagdelen", "fout", "De eindtijd moet later zijn dan de begintijd.");
+        return;
+      }
+      if (d.ochtend_tot > d.middag_van) {
+        toon("melding-dagdelen", "fout", "De middag mag pas beginnen als de ochtend voorbij is.");
+        return;
+      }
+      await Opslag.bewaar("instellingen", d);
+      toon("melding-dagdelen", "goed", "Opgeslagen.");
+      laadTellingen();
+    });
+
+    // ----- Overzicht -----
+    async function laadTellingen() {
+      const telling = await Opslag.tellingen();
+      const soorten = Object.keys(telling);
+      document.getElementById("tellingen").innerHTML = soorten.length
+        ? soorten.map(function (s) {
+            return "<tr><td>" + (NAMEN[s] || s) + "</td><td>" + telling[s] + "</td></tr>";
+          }).join("")
+        : '<tr><td colspan="2">Nog niets opgeslagen.</td></tr>';
+    }
+
+    // ----- Back-up downloaden -----
+    document.getElementById("download").addEventListener("click", async function () {
+      const backup = await Opslag.exporteer();
+      const datum = new Date().toISOString().slice(0, 10);
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "glasmeesters-backup-" + datum + ".json";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(function () { URL.revokeObjectURL(link.href); }, 2000);
+      toon("melding-backup", "goed", "Back-up gemaakt: " + link.download);
+    });
+
+    // ----- Back-up terugzetten -----
+    document.getElementById("bestand").addEventListener("change", async function (e) {
+      const bestand = e.target.files[0];
+      e.target.value = "";
+      if (!bestand) return;
+      if (!confirm("Let op: alle huidige gegevens op dit apparaat worden vervangen door de back-up. Doorgaan?")) return;
+      try {
+        const backup = JSON.parse(await bestand.text());
+        await Opslag.importeer(backup);
+        toon("melding-backup", "goed", "Back-up van " +
+          new Date(backup.gemaakt_op).toLocaleString("nl-NL") + " is teruggezet.");
+        laadDagdelen();
+        laadTellingen();
+      } catch (fout) {
+        toon("melding-backup", "fout", "Terugzetten mislukt: " +
+          (fout instanceof SyntaxError ? "dit bestand is geen geldige back-up." : fout.message));
+      }
+    });
+
+    // ----- Alles wissen -----
+    document.getElementById("wissen").addEventListener("click", async function () {
+      if (!confirm("Weet je zeker dat je ALLE gegevens op dit apparaat wilt wissen? Maak eerst een back-up.")) return;
+      await Opslag.wisAlles();
+      toon("melding-wissen", "info", "Alle gegevens zijn gewist. De dagdelen staan weer op de standaardtijden.");
+      laadDagdelen();
+      laadTellingen();
+    });
+
+    laadDagdelen();
+    laadTellingen();
+  }
+  </script>
 </body>
 </html>
