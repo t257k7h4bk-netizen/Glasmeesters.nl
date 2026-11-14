@@ -74,6 +74,13 @@
         <div class="melding" id="melding-wa"></div>
       </section>
 
+      <!-- Logboek -->
+      <section class="kaart">
+        <h2>Logboek</h2>
+        <p class="uitleg">Belangrijke handelingen, zoals het opheffen van een blokkade. Nieuwste bovenaan.</p>
+        <div id="logboek" class="logboek"><p class="zacht">Bezig met laden…</p></div>
+      </section>
+
       <!-- Overzicht -->
       <section class="kaart">
         <h2>Opgeslagen gegevens</h2>
@@ -107,7 +114,7 @@
       middag_van: "12:30",  middag_tot: "16:30"
     };
 
-    const NAMEN = { instellingen: "Instellingen", medewerkers: "Medewerkers", klussen: "Werkopdrachten", afwezigheid: "Afwezigheid", voertuigen: "Voertuigen", gereedschap: "Gereedschap", bestanden: "Foto's en documenten", whatsapp: "WhatsApp-berichten" }; // wordt aangevuld in latere stappen
+    const NAMEN = { instellingen: "Instellingen", medewerkers: "Medewerkers", klussen: "Werkopdrachten", afwezigheid: "Afwezigheid", voertuigen: "Voertuigen", gereedschap: "Gereedschap", bestanden: "Foto's en documenten", whatsapp: "WhatsApp-berichten", logboek: "Logboek" }; // wordt aangevuld in latere stappen
 
     function toon(id, soort, tekst) {
       const el = document.getElementById(id);
@@ -202,6 +209,17 @@
       laadTellingen();
     });
 
+    // ----- Logboek -----
+    async function laadLogboek() {
+      const regels = (await Opslag.alle("logboek")).sort(function (a, b) { return (b.wanneer || "").localeCompare(a.wanneer || ""); }).slice(0, 50);
+      document.getElementById("logboek").innerHTML = regels.length ? regels.map(function (r) {
+        const t = new Date(r.wanneer);
+        return '<div class="log-regel"><span class="zacht">' + t.toLocaleDateString("nl-NL") + " " +
+          t.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" }) + '</span><strong>' +
+          String(r.actie).replace(/</g, "&lt;") + '</strong><span>' + String(r.details || "").replace(/</g, "&lt;") + '</span></div>';
+      }).join("") : '<p class="zacht">Nog geen meldingen.</p>';
+    }
+
     // ----- WhatsApp-sjabloon -----
     async function laadSjabloon() { document.getElementById("wa-sjabloon").value = await WhatsApp.sjabloon(); }
     document.getElementById("wa-opslaan").addEventListener("click", async function () {
@@ -227,6 +245,7 @@
 
     laadDagdelen();
     laadSjabloon();
+    laadLogboek();
     laadTellingen();
   }
   </script>

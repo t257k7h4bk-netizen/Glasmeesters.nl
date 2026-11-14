@@ -32,6 +32,7 @@ const Werkopdracht = (function () {
   let bestanden = [];             // bestanden van deze opdracht
   let urls = [];                  // tijdelijke adressen voor miniaturen
 
+  let ophefVerzoek = null;        // { reden, redenen } als de beheerder een blokkade opheft
   let naWhatsApp = false;         // na opslaan meteen het WhatsApp-venster openen
   let berichten = [];             // vastgelegde WhatsApp-berichten van deze opdracht
 
@@ -60,65 +61,148 @@ const Werkopdracht = (function () {
   }
 
   // ---------- Controles ----------
-  function blokkades(klus) {
-    const redenen = [];
-    if (!telt(klus)) return redenen;
-    (klus.medewerkers || []).forEach(function (id) {
-      const m = medewerker(id);
-      if (!m) return;
-      if (!m.actief) redenen.push(naam(m) + " is niet actief.");
-      const af = afwezigOp(id, klus.datum);
-      if (af) redenen.push(naam(m) + " is afwezig (" + af.soort.toLowerCase() + ").");
-      ctx.klussen.forEach(function (k) {
-        if (k.id === klus.id || !telt(k) || k.datum !== klus.datum) return;
-        if ((k.medewerkers || []).indexOf(id) === -1) return;
-        if (overlapt(klus.start, klus.eind, k.start, k.eind)) {
-          redenen.push(naam(m) + " staat al ingepland van " + k.start + " tot " + k.eind + " bij " + k.klant + ".");
-        }
-      });
-    });
+  // controleer() geeft alles terug wat er aan een opdracht schort:
+  //   rood   = opslaan kan niet ({ tekst, soort: "dubbel" | "bevoegdheid" })
+  //   oranje = waarschuwing, opslaan mag na bevestiging (tekst)
+  // Een "bevoegdheid"-blokkade kan de beheerder opheffen met een reden.
 
-    // Voertuig en aanhanger: buiten gebruik of dubbel geboekt
-    [klus.voertuig, klus.aanhanger].forEach(function (vid) {
-      if (!vid) return;
-      const v = voertuig(vid);
-      if (!v) return;
-      if (v.status === "buiten_gebruik") redenen.push(v.naam + " is tijdelijk niet inzetbaar" + (v.bijzonderheden ? " (" + v.bijzonderheden + ")" : "") + ".");
-      ctx.klussen.forEach(function (k) {
-        if (k.id === klus.id || !telt(k) || k.datum !== klus.datum) return;
-        if (k.voertuig !== vid && k.aanhanger !== vid) return;
-        if (overlapt(klus.start, klus.eind, k.start, k.eind)) {
-          redenen.push(v.naam + " is al ingepland van " + k.start + " tot " + k.eind + " bij " + k.klant + ".");
-        }
-      });
-    });
+  // Een hoger rijbewijs telt ook voor een lager (BE en C tellen ook als B, CE telt overal voor)
+  const OOK_GELDIG = {
+    rijbewijs_b: ["rijbewijs_be", "rijbewijs_c", "rijbewijs_ce"],
+    rijbewijs_be: ["rijbewijs_ce"],
+    rijbewijs_c: ["rijbewijs_ce"]
+  };
 
-    // Gereedschap dat defect of afgekeurd is
-    (klus.gereedschap || []).forEach(function (gid) {
-      const g = gereedschapItem(gid);
-      if (g && (g.status === "defect" || g.status === "afgekeurd")) {
-        redenen.push(g.naam + " is " + GEREEDSCHAP_STATUS[g.status].toLowerCase() + " en mag niet gebruikt worden.");
-      }
+  function heeft(m, code, datum) {
+    const codes = [code].concat(OOK_GELDIG[code] || []);
+    return (m.bevoegdheden || []).some(function (b) {
+      if (codes.indexOf(b.code) === -1) return false;
+      const s = statusBevoegdheid(b, datum);
+      return s === "geldig" || s === "bijna";
     });
-    return redenen;
   }
 
-  // Oranje waarschuwingen: opslaan mag, na bevestiging
-  function waarschuwingen(klus) {
-    const lijst = [];
-    if (!telt(klus)) return lijst;
-    if ((klus.medewerkers || []).length && !klus.voertuig) lijst.push("Er is nog geen voertuig gekozen.");
+  function kleineLetter(t) { return t.charAt(0).toLowerCase() + t.slice(1); }
+
+  function opsomming(namen) {
+    if (namen.length <= 1) return namen.join("");
+    return namen.slice(0, -1).join(", ") + " en " + namen[namen.length - 1];
+  }
+
+  function controleer(klus) {
+    const rood = [], oranje = [];
+    if (!telt(klus)) return { rood: rood, oranje: oranje };
+    const mensen = (klus.medewerkers || []).map(medewerker).filter(Boolean);
+
+    // 1. Dubbele boekingen, afwezigheid, niet actief
+    mensen.forEach(function (m) {
+      if (!m.actief) rood.push({ tekst: naam(m) + " is niet actief.", soort: "dubbel" });
+      const af = afwezigOp(m.id, klus.datum);
+      if (af) rood.push({ tekst: naam(m) + " is afwezig (" + af.soort.toLowerCase() + ").", soort: "dubbel" });
+      ctx.klussen.forEach(function (k) {
+        if (k.id === klus.id || !telt(k) || k.datum !== klus.datum) return;
+        if ((k.medewerkers || []).indexOf(m.id) === -1) return;
+        if (overlapt(klus.start, klus.eind, k.start, k.eind)) {
+          rood.push({ tekst: naam(m) + " staat al ingepland van " + k.start + " tot " + k.eind + " bij " + k.klant + ".", soort: "dubbel" });
+        }
+      });
+    });
+
+    // 2. Voertuig en aanhanger: niet inzetbaar of dubbel geboekt
+    const v = voertuig(klus.voertuig), a = voertuig(klus.aanhanger);
+    [v, a].forEach(function (x) {
+      if (!x) return;
+      if (x.status === "buiten_gebruik") rood.push({ tekst: x.naam + " is tijdelijk niet inzetbaar" + (x.bijzonderheden ? " (" + x.bijzonderheden + ")" : "") + ".", soort: "dubbel" });
+      ctx.klussen.forEach(function (k) {
+        if (k.id === klus.id || !telt(k) || k.datum !== klus.datum) return;
+        if (k.voertuig !== x.id && k.aanhanger !== x.id) return;
+        if (overlapt(klus.start, klus.eind, k.start, k.eind)) {
+          rood.push({ tekst: x.naam + " is al ingepland van " + k.start + " tot " + k.eind + " bij " + k.klant + ".", soort: "dubbel" });
+        }
+      });
+    });
+
+    // 3. Rijbewijs: minstens één medewerker moet voertuig (+ aanhanger) mogen besturen
+    if (mensen.length && (v || a)) {
+      const nodig = [];
+      if (v) nodig.push(v.vereist_rijbewijs || "rijbewijs_b");
+      if (a && a.vereist_rijbewijs === "rijbewijs_be") nodig.push(v && v.vereist_rijbewijs === "rijbewijs_c" ? "rijbewijs_ce" : "rijbewijs_be");
+      else if (a && !v) nodig.push(a.vereist_rijbewijs || "rijbewijs_b");
+      // Dubbele weghalen, en een rijbewijs dat al gedekt wordt door een hoger rijbewijs (C valt onder CE)
+      const uniek = nodig.filter(function (c, i) { return nodig.indexOf(c) === i; })
+        .filter(function (c, i, lijst) {
+          return !lijst.some(function (d) { return d !== c && (OOK_GELDIG[c] || []).indexOf(d) !== -1; });
+        });
+      const bestuurders = mensen.filter(function (m) { return uniek.every(function (c) { return heeft(m, c, klus.datum); }); });
+      if (!bestuurders.length) {
+        const wat = opsomming(uniek.map(bevoegdheidNaam).map(kleineLetter));
+        const waarvoor = [v ? v.naam : null, a ? a.naam : null].filter(Boolean).join(" met ");
+        rood.push({
+          soort: "bevoegdheid",
+          tekst: mensen.length === 1
+            ? "LET OP: " + naam(mensen[0]) + " beschikt niet over een geldig " + wat + ", nodig voor " + waarvoor + "."
+            : "LET OP: niemand op deze opdracht heeft een geldig " + wat + ", nodig voor " + waarvoor + "."
+        });
+      }
+    }
+
+    // 4. Gereedschap: defect/afgekeurd, of een bevoegdheid nodig
     (klus.gereedschap || []).forEach(function (gid) {
       const g = gereedschapItem(gid);
       if (!g) return;
+      if (g.status === "defect" || g.status === "afgekeurd") {
+        rood.push({ tekst: g.naam + " is " + GEREEDSCHAP_STATUS[g.status].toLowerCase() + " en mag niet gebruikt worden.", soort: "dubbel" });
+      }
+      if (g.vereist && mensen.length && !mensen.some(function (m) { return heeft(m, g.vereist, klus.datum); })) {
+        const def = BEVOEGDHEDEN.find(function (d) { return d.code === g.vereist; }) || {};
+        const tekst = "LET OP: niemand op deze opdracht heeft een geldig certificaat \"" + bevoegdheidNaam(g.vereist) + "\" voor " + g.naam + ".";
+        if (def.wettelijk) rood.push({ tekst: tekst, soort: "bevoegdheid" });
+        else oranje.push(tekst);
+      }
       const elders = ctx.klussen.find(function (k) {
         return k.id !== klus.id && telt(k) && k.datum === klus.datum && (k.gereedschap || []).indexOf(gid) !== -1 &&
                overlapt(klus.start, klus.eind, k.start, k.eind);
       });
-      if (elders) lijst.push(g.naam + " is op dat moment ook ingepland bij " + elders.klant + " (" + elders.start + "–" + elders.eind + ").");
+      if (elders) oranje.push(g.naam + " is op dat moment ook ingepland bij " + elders.klant + " (" + elders.start + "–" + elders.eind + ").");
     });
-    return lijst;
+
+    // 5. Ervaring die bij het werk hoort (waarschuwing)
+    if (mensen.length) {
+      const nodigErvaring = [];
+      (klus.soort_werk || []).forEach(function (w) { if (ERVARING_VOOR_WERK[w]) nodigErvaring.push(ERVARING_VOOR_WERK[w]); });
+      if (ERVARING_VOOR_GLAS[klus.soort_glas]) nodigErvaring.push(ERVARING_VOOR_GLAS[klus.soort_glas]);
+      nodigErvaring.filter(function (c, i) { return nodigErvaring.indexOf(c) === i; }).forEach(function (code) {
+        if (!mensen.some(function (m) { return heeft(m, code, klus.datum); })) {
+          oranje.push("Niemand op deze opdracht heeft \"" + kleineLetter(bevoegdheidNaam(code)) + "\".");
+        }
+      });
+    }
+
+    // 6. Verlopen of ontbrekende VCA bij de buitendienst (waarschuwing)
+    mensen.forEach(function (m) {
+      if (groepVanFunctie(m.functie) !== "buitendienst") return;
+      if (!heeft(m, "vca_basis", klus.datum) && !heeft(m, "vca_vol", klus.datum)) {
+        const had = (m.bevoegdheden || []).some(function (b) { return b.code === "vca_basis" || b.code === "vca_vol"; });
+        oranje.push("VCA van " + naam(m) + (had ? " is verlopen." : " ontbreekt."));
+      }
+    });
+
+    // 7. Geen voertuig gekozen (waarschuwing)
+    if (mensen.length && !klus.voertuig) oranje.push("Er is nog geen voertuig gekozen.");
+
+    return { rood: rood, oranje: oranje };
   }
+
+  // Blokkades die niet (meer) zijn opgeheven door de beheerder
+  function openBlokkades(klus) {
+    const opgeheven = (klus.opheffing && klus.opheffing.redenen) || [];
+    return controleer(klus).rood.filter(function (r) {
+      return !(r.soort === "bevoegdheid" && opgeheven.indexOf(r.tekst) !== -1);
+    });
+  }
+
+  function blokkades(klus) { return openBlokkades(klus).map(function (r) { return r.tekst; }); }
+  function waarschuwingen(klus) { return controleer(klus).oranje; }
 
   function statusVoor(id, datum, start, eind, negeerId) {
     const m = medewerker(id);
@@ -675,6 +759,8 @@ const Werkopdracht = (function () {
     const el = $("wo-melding");
     el.className = "melding" + (html ? " zichtbaar " + soort : "");
     el.innerHTML = html || "";
+    // Zorg dat de melding in beeld komt (hij staat onderaan een lang formulier)
+    if (html && soort !== "info") el.scrollIntoView({ block: "center", behavior: "smooth" });
   }
 
   // ---------- Openen ----------
@@ -696,6 +782,7 @@ const Werkopdracht = (function () {
     gekozenGereedschap = (o.gereedschap || []).slice();
     opdrachtId = opdracht ? opdracht.id : Opslag.nieuwId();
     naWhatsApp = false;
+    ophefVerzoek = null;
     berichten = [];
     isNieuw = !opdracht;
     isOpgeslagen = false;
@@ -740,6 +827,10 @@ const Werkopdracht = (function () {
     tekenBestanden();
     laadBestanden();
     tekenWaStatus(o);
+    if (opdracht && o.opheffing) {
+      melding("info", "Blokkade eerder opgeheven door de beheerder op " +
+        new Date(o.opheffing.op).toLocaleDateString("nl-NL") + ". Reden: " + esc(o.opheffing.reden));
+    }
     if (opdracht) laadBerichten(opdracht.id).then(function () { tekenWaStatus(o); });
     $("wo-bestand-knoppen").hidden = !(ctx.magBewerken || ctx.magFotos);
     document.querySelectorAll(".wo-alleen-bewerk").forEach(function (el) { el.hidden = !ctx.magBewerken; });
@@ -783,9 +874,34 @@ const Werkopdracht = (function () {
       return;
     }
 
-    const redenen = blokkades(o);
-    if (redenen.length) {
-      melding("fout", "<strong>Opslaan kan niet:</strong><br>" + redenen.map(esc).join("<br>"));
+    // Blokkade opgeheven door de beheerder? Dan vastleggen bij de opdracht.
+    if (ophefVerzoek) {
+      const eerder = (o.opheffing && o.opheffing.redenen) || [];
+      o.opheffing = {
+        reden: ophefVerzoek.reden, door: "beheerder", op: new Date().toISOString(),
+        redenen: eerder.concat(ophefVerzoek.redenen.filter(function (r) { return eerder.indexOf(r) === -1; }))
+      };
+    }
+
+    const open = openBlokkades(o);
+    if (open.length) {
+      const alleenBevoegdheid = open.every(function (r) { return r.soort === "bevoegdheid"; });
+      const isBeheerder = typeof huidigeRol === "function" && huidigeRol() === "beheerder";
+      melding("fout", "<strong>Opslaan kan niet:</strong><br>" + open.map(function (r) { return esc(r.tekst); }).join("<br>") +
+        (alleenBevoegdheid
+          ? (isBeheerder
+              ? '<div class="knoppen"><button type="button" class="knop gevaar" id="wo-ophef">Blokkade opheffen (beheerder)</button></div>'
+              : "<br><em>Dit is een wettelijke bevoegdheid. Alleen de beheerder kan deze blokkade opheffen.</em>")
+          : ""));
+      const knop = $("wo-ophef");
+      if (knop) knop.onclick = function () {
+        const reden = prompt("Waarom wordt deze blokkade opgeheven?\n(Verplicht. Dit komt in het logboek.)");
+        if (!reden || !reden.trim()) return;
+        ophefVerzoek = { reden: reden.trim(), redenen: open.map(function (r) { return r.tekst; }) };
+        waarschuwingGezien = "";
+        $("wo-form").requestSubmit();
+      };
+      ophefVerzoek = null;
       return;
     }
 
@@ -803,6 +919,13 @@ const Werkopdracht = (function () {
     o.aantal_bestanden = bestanden.length;
     const bewaard = await Opslag.bewaar("klussen", o);
     isOpgeslagen = true;
+    if (ophefVerzoek) {
+      await Opslag.bewaar("logboek", {
+        wanneer: new Date().toISOString(), rol: "beheerder", actie: "Blokkade opgeheven",
+        details: "Opdracht " + o.nummer + " (" + o.klant + "): " + ophefVerzoek.redenen.join(" ") + " Reden: " + ophefVerzoek.reden
+      });
+      ophefVerzoek = null;
+    }
     $("werkopdracht").close();
     if (ctx.toast) {
       if (o.datum && !o.medewerkers.length) ctx.toast("Opdracht " + o.nummer + " opgeslagen. Let op: er is nog niemand ingepland.", "waarschuwing");
@@ -848,6 +971,8 @@ const Werkopdracht = (function () {
     laadGegevens: laadGegevens,
     open: open,
     blokkades: blokkades,
+    controleer: controleer,
+    openBlokkades: openBlokkades,
     waarschuwingen: waarschuwingen,
     statusVoor: statusVoor,
     zorgVoorNummers: zorgVoorNummers,

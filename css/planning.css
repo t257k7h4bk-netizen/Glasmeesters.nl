@@ -79,6 +79,8 @@
 .blok.klus.st-bezig { border-left-color: var(--blauw); background: #E6EEF5; }
 .blok.klus.st-klaar { border-left-color: var(--groen); background: #E7F4EC; }
 .blok.klus.st-klaar b::after { content: " ✓"; color: var(--groen); }
+.blok.klus.probleem { border-left-color: var(--rood); background: #FBEDEB; }
+.blok.klus.let-op { box-shadow: inset 0 0 0 1px #E8B46A; }
 .blok.afwezig { background: #ECEEF1; border-left: 4px solid var(--grijs); color: var(--tekst-zacht); font-weight: 600; }
 .blok.afwezig span { font-weight: 400; font-size: 12px; }
 .blok.wordt-gesleept { opacity: 0.35; }

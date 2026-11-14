@@ -130,6 +130,17 @@
       k.classList.toggle("actief", k.dataset.weergave === stand.weergave);
     });
 
+    // Waarschuwingen per opdracht één keer uitrekenen
+    const signaal = {};
+    klussen.forEach(function (k) {
+      if (!Werkopdracht.telt(k) || dagen.map(iso).indexOf(k.datum) === -1) return;
+      const c = Werkopdracht.controleer(k);
+      const rood = Werkopdracht.openBlokkades(k);
+      const oranje = c.oranje.filter(function (t) { return t !== "Er is nog geen voertuig gekozen."; });
+      if (rood.length) signaal[k.id] = { icoon: "⛔", tekst: rood.map(function (r) { return r.tekst; }).join(" ") };
+      else if (oranje.length || k.opheffing) signaal[k.id] = { icoon: "⚠️", tekst: oranje.concat(k.opheffing ? ["Blokkade opgeheven door beheerder: " + k.opheffing.reden] : []).join(" ") };
+    });
+
     const rooster = document.getElementById("rooster");
     rooster.style.gridTemplateColumns = "minmax(150px, 190px) repeat(" + dagen.length + ", minmax(" +
       (stand.soort === "dag" ? "320px" : "150px") + ", 1fr))";
@@ -161,8 +172,10 @@
         }
         lijst.forEach(function (k) {
           const anderen = (k.medewerkers || []).filter(function (id) { return id !== m.id; }).map(medewerker).filter(Boolean);
-          inhoud += '<div class="blok klus st-' + (k.status || "gepland") + '" data-klus="' + k.id + '" data-medewerker="' + m.id + '">' +
-                      '<b>' + k.start + '–' + k.eind + '</b>' +
+          const sg = signaal[k.id];
+          inhoud += '<div class="blok klus st-' + (k.status || "gepland") + (sg ? (sg.icoon === "⛔" ? " probleem" : " let-op") : "") +
+                      '" data-klus="' + k.id + '" data-medewerker="' + m.id + '"' + (sg ? ' title="' + esc(sg.tekst) + '"' : "") + '>' +
+                      '<b>' + (sg ? sg.icoon + " " : "") + k.start + '–' + k.eind + '</b>' +
                       '<span class="klant">' + esc(k.klant) + '</span>' +
                       (stand.soort === "dag" && k.adres ? '<span class="adres">' + esc(k.adres) + '</span>' : "") +
                       (voertuigNaam(k) ? '<span class="samen">🚐 ' + esc(voertuigNaam(k)) + '</span>' : "") +

@@ -281,7 +281,7 @@ const Voorbeeld = (function () {
     ["Rolsteiger 2", "Steigers", "Altrex", "beschikbaar"],
     ["Kitpistool-set 1", "Overig", "Cox", "beschikbaar"],
     ["Kitpistool-set 2", "Overig", "Cox", "beschikbaar"],
-    ["Minihijskraan", "Overig", "Unic", "beschikbaar"]
+    ["Minihijskraan", "Overig", "Unic", "beschikbaar", "minihijskraan"]
   ];
 
   async function zorgVoorMaterieel() {
@@ -299,7 +299,7 @@ const Voorbeeld = (function () {
     if ((await Opslag.alle("gereedschap")).length === 0) {
       for (const g of GEREEDSCHAP) {
         await Opslag.bewaar("gereedschap", {
-          naam: g[0], categorie: g[1], merk: g[2], status: g[3],
+          naam: g[0], categorie: g[1], merk: g[2], status: g[3], vereist: g[4] || "",
           bijzonderheden: g[3] === "defect" ? "Rubber gescheurd" : g[3] === "afgekeurd" ? "Afgekeurd bij keuring" : "",
           voorbeeld: true
         });
@@ -320,6 +320,14 @@ const Voorbeeld = (function () {
       await zorgVoorMedewerkers();
       await zorgVoorPlanning();
       await zorgVoorMaterieel();
+      // Fase 4: de minihijskraan vraagt een certificaat (ook in eerder geladen gegevens)
+      const lijst = await Opslag.alle("gereedschap");
+      for (const g of lijst) {
+        if (g.voorbeeld && g.naam === "Minihijskraan" && g.vereist === undefined) {
+          g.vereist = "minihijskraan";
+          await Opslag.bewaar("gereedschap", g);
+        }
+      }
     }
   };
 })();

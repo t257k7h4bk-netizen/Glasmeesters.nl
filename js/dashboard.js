@@ -67,6 +67,7 @@
     const klussen = await Opslag.alle("klussen");
     const afwezigheid = await Opslag.alle("afwezigheid");
     const voertuigen = await Opslag.alle("voertuigen");
+    await Werkopdracht.laadGegevens();
 
     const actief = medewerkers.filter(function (m) { return m.actief; });
     const planbaar = actief.filter(function (m) { return groepVanFunctie(m.functie) !== "kantoor"; });
@@ -196,6 +197,20 @@
     problemen.forEach(function (p) {
       acties += regel("rood", "Klus <strong>" + esc(p.k.klant) + "</strong> op " + esc(new Date(p.k.datum + "T00:00:00").toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" })) + " heeft " + esc(p.tekst), "planning.html");
     });
+    // Opdrachten de komende 14 dagen met een blokkade of waarschuwing
+    const grens14 = iso(plus(vandaag, 14));
+    klussen.filter(function (k) { return Werkopdracht.telt(k) && k.datum >= iso(vandaag) && k.datum <= grens14; })
+      .sort(function (a, b) { return (a.datum + a.start).localeCompare(b.datum + b.start); })
+      .forEach(function (k) {
+        const wanneer = esc(new Date(k.datum + "T00:00:00").toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" }));
+        Werkopdracht.openBlokkades(k).forEach(function (r) {
+          acties += regel("rood", "<strong>" + esc(k.klant) + "</strong> (" + wanneer + "): " + esc(r.tekst.replace(/^LET OP: /, "")), "werkopdrachten.html?id=" + k.id);
+        });
+        const oranje = Werkopdracht.controleer(k).oranje.filter(function (t) { return t !== "Er is nog geen voertuig gekozen."; });
+        if (oranje.length) acties += regel("oranje", "<strong>" + esc(k.klant) + "</strong> (" + wanneer + "): " + esc(oranje[0]) +
+          (oranje.length > 1 ? " (+" + (oranje.length - 1) + " meer)" : ""), "werkopdrachten.html?id=" + k.id);
+      });
+
     voorbereidenSnel.forEach(function (k) {
       acties += regel("oranje", "Opdracht <strong>" + esc(k.klant) + "</strong> (" + esc(new Date(k.datum + "T00:00:00").toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" })) + ") moet nog voorbereid worden", "werkopdrachten.html?id=" + k.id);
     });

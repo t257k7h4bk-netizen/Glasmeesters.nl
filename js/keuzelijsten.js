@@ -100,6 +100,17 @@ const VOERTUIG_STATUS = {
   buiten_gebruik: "Tijdelijk niet inzetbaar"
 };
 
+// Welke ervaring hoort bij welk werk of glas (geeft een oranje waarschuwing als niemand het heeft)
+const ERVARING_VOOR_WERK = {
+  "Triple glas plaatsen": "ervaring_triple",
+  "HR++ glas plaatsen": "ervaring_hr",
+  "HR+++ glas plaatsen": "ervaring_hr"
+};
+const ERVARING_VOOR_GLAS = {
+  "Triple glas": "ervaring_triple",
+  "Glas-in-lood": "ervaring_monument"
+};
+
 // Status van een werkopdracht
 const STATUSSEN = [
   { code: "concept",      naam: "Concept",       kleur: "grijs"  },

@@ -35,7 +35,7 @@ glasopnames, voertuigen en gereedschap in één programma.
 - [x] Stap 3c – Foto's en documenten
 - [x] Stap 3d – WhatsApp (stap 1: vooraf ingevuld bericht)
 - [x] Stap 4a – Opleidingen en bevoegdheden bewerken + opleidingenoverzicht
-- [ ] Stap 4b – Automatische waarschuwingen en blokkades
+- [x] Stap 4b – Automatische waarschuwingen en blokkades
 - [ ] Stap 4c – Voertuigenbeheer
 - [ ] Stap 4d – Gereedschapsbeheer
 - [ ] Stap 4e – Meldingen op het dashboard

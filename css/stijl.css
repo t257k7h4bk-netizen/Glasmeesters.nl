@@ -432,6 +432,9 @@ input:disabled, select:disabled, textarea:disabled { background: var(--achtergro
 .wa-open.uit { background: var(--lijn); color: var(--tekst-zacht); cursor: not-allowed; pointer-events: none; }
 .groen-tekst { color: var(--groen); font-weight: 600; }
 
+.logboek { max-height: 320px; overflow-y: auto; }
+.log-regel { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-bottom: 1px solid var(--lijn); font-size: 14px; }
+
 .materialen { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
 .materiaal { display: grid; grid-template-columns: 90px 100px 1fr 40px; gap: 6px; }
 .materiaal input { width: 100%; min-width: 0; }
