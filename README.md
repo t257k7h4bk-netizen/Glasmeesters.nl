@@ -30,7 +30,7 @@ glasopnames, voertuigen en gereedschap in één programma.
 - [x] Stap 2d – Planning
 - [x] Stap 2e – Dashboard met echte tellers
 - [x] Stap 3a – Werkopdrachten: nummer, status, werkzaamheden, glassoort
-- [ ] Stap 3b – Voertuig, materialen en gereedschap
+- [x] Stap 3b – Voertuig, materialen en gereedschap
 - [ ] Stap 3c – Foto's en documenten
 - [ ] Stap 3d – WhatsApp
 

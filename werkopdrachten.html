@@ -166,8 +166,7 @@
     });
 
     (async function () {
-      await Voorbeeld.zorgVoorMedewerkers();
-      await Voorbeeld.zorgVoorPlanning();
+      await Voorbeeld.zorgVoorAlles();
       await Werkopdracht.zorgVoorNummers();
       if (rol === "medewerker") {
         try { ikBen = localStorage.getItem("gm-ik-ben"); } catch (e) {}

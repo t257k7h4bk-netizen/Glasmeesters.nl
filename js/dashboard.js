@@ -61,12 +61,12 @@
   }
 
   async function start() {
-    await Voorbeeld.zorgVoorMedewerkers();
-    await Voorbeeld.zorgVoorPlanning();
+    await Voorbeeld.zorgVoorAlles();
     await Werkopdracht.zorgVoorNummers();
     const medewerkers = await Opslag.alle("medewerkers");
     const klussen = await Opslag.alle("klussen");
     const afwezigheid = await Opslag.alle("afwezigheid");
+    const voertuigen = await Opslag.alle("voertuigen");
 
     const actief = medewerkers.filter(function (m) { return m.actief; });
     const planbaar = actief.filter(function (m) { return groepVanFunctie(m.functie) !== "kantoor"; });
@@ -177,7 +177,12 @@
         link: "werkopdrachten.html"
       });
     }
-    html += tegel({ label: "Voertuigen", getal: "–", status: "grijs", tekst: "volgt in fase 4" });
+    const wagens = voertuigen.filter(function (v) { return v.soort !== "aanhanger"; });
+    const inGebruik = wagens.filter(function (v) { return k1.some(function (k) { return k.voertuig === v.id; }); }).length;
+    const nietInzetbaar = wagens.filter(function (v) { return v.status === "buiten_gebruik"; }).length;
+    html += tegel({ label: "Voertuigen " + dagNaam(dag1), getal: inGebruik + " / " + wagens.length,
+                    status: nietInzetbaar ? "oranje" : "groen",
+                    tekst: "in gebruik" + (nietInzetbaar ? " · " + nietInzetbaar + " niet inzetbaar" : "") });
     html += tegel({ label: "APK en onderhoud", getal: "–", status: "grijs", tekst: "volgt in fase 4" });
     html += tegel({ label: "Gereedschapskeuringen", getal: "–", status: "grijs", tekst: "volgt in fase 4" });
     html += tegel({ label: "Glasopnames", getal: "–", status: "grijs", tekst: "volgt in fase 5" });

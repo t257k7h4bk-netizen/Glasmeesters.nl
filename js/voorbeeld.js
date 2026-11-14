@@ -240,5 +240,86 @@ const Voorbeeld = (function () {
     return true;
   }
 
-  return { zorgVoorMedewerkers: zorgVoorMedewerkers, herstelMedewerkers: herstelMedewerkers, zorgVoorPlanning: zorgVoorPlanning };
+  // ----- Voorbeeldvoertuigen en -gereedschap (fictief) -----
+
+  // naam, soort, merk, type, kenteken, vereist rijbewijs, status
+  const VOERTUIGEN = [
+    ["Bus 1", "bus", "Mercedes-Benz", "Sprinter", "XX-101-A", "rijbewijs_b", "actief"],
+    ["Bus 2", "bus", "Mercedes-Benz", "Sprinter", "XX-102-A", "rijbewijs_b", "actief"],
+    ["Bus 3", "bus", "Volkswagen", "Crafter", "XX-103-A", "rijbewijs_b", "actief"],
+    ["Bus 4", "bus", "Renault", "Master", "XX-104-A", "rijbewijs_b", "actief"],
+    ["Bus 5", "bus", "Ford", "Transit", "XX-105-A", "rijbewijs_b", "actief"],
+    ["Bus 6", "bus", "Volkswagen", "Transporter", "XX-106-A", "rijbewijs_b", "buiten_gebruik"],
+    ["Bakwagen", "bakwagen", "Iveco", "Daily 7,2 ton", "XX-107-B", "rijbewijs_c", "actief"],
+    ["Opnamewagen 1", "auto", "Volkswagen", "Caddy", "XX-108-C", "rijbewijs_b", "actief"],
+    ["Opnamewagen 2", "auto", "Peugeot", "Partner", "XX-109-C", "rijbewijs_b", "actief"],
+    ["Aanhanger 1 (glasbok)", "aanhanger", "Humbaur", "Glastransport", "WX-01-AA", "rijbewijs_be", "actief"],
+    ["Aanhanger 2 (open)", "aanhanger", "Anssems", "Bakwagen 750 kg", "WX-02-AA", "rijbewijs_b", "actief"]
+  ];
+
+  // naam, categorie, merk, status
+  const GEREEDSCHAP = [
+    ["Glaszuiger 1", "Glaszuigers", "Bohle", "beschikbaar"],
+    ["Glaszuiger 2", "Glaszuigers", "Bohle", "beschikbaar"],
+    ["Glaszuiger 3", "Glaszuigers", "Bohle", "beschikbaar"],
+    ["Glaszuiger 4", "Glaszuigers", "Bohle", "defect"],
+    ["Glaslift 1", "Glasliften", "Smart Lift", "beschikbaar"],
+    ["Glasbok 1", "Glasbokken", "Bohle", "beschikbaar"],
+    ["Glasbok 2", "Glasbokken", "Bohle", "beschikbaar"],
+    ["Glasdrager 1", "Glasdragers", "Bohle", "beschikbaar"],
+    ["Glasdrager 2", "Glasdragers", "Bohle", "beschikbaar"],
+    ["Accuboormachine 1", "Accugereedschap", "Makita", "beschikbaar"],
+    ["Accuboormachine 2", "Accugereedschap", "Makita", "beschikbaar"],
+    ["Accuboormachine 3", "Accugereedschap", "Makita", "beschikbaar"],
+    ["Klopboormachine 1", "Boormachines", "Bosch", "beschikbaar"],
+    ["Slijpmachine 1", "Slijpmachines", "Makita", "beschikbaar"],
+    ["Slijpmachine 2", "Slijpmachines", "Makita", "beschikbaar"],
+    ["Ladder 1 (3-delig)", "Ladders", "Altrex", "beschikbaar"],
+    ["Ladder 2 (3-delig)", "Ladders", "Altrex", "beschikbaar"],
+    ["Ladder 3 (reform)", "Ladders", "Altrex", "afgekeurd"],
+    ["Rolsteiger 1", "Steigers", "Altrex", "beschikbaar"],
+    ["Rolsteiger 2", "Steigers", "Altrex", "beschikbaar"],
+    ["Kitpistool-set 1", "Overig", "Cox", "beschikbaar"],
+    ["Kitpistool-set 2", "Overig", "Cox", "beschikbaar"],
+    ["Minihijskraan", "Overig", "Unic", "beschikbaar"]
+  ];
+
+  async function zorgVoorMaterieel() {
+    const vlag = (await Opslag.haal("instellingen", "voorbeeld")) || { id: "voorbeeld" };
+    if (vlag.materieel) return false;
+    if ((await Opslag.alle("voertuigen")).length === 0) {
+      for (const v of VOERTUIGEN) {
+        await Opslag.bewaar("voertuigen", {
+          naam: v[0], soort: v[1], merk: v[2], type: v[3], kenteken: v[4],
+          vereist_rijbewijs: v[5], status: v[6], bijzonderheden: v[6] === "buiten_gebruik" ? "In reparatie bij de garage" : "",
+          voorbeeld: true
+        });
+      }
+    }
+    if ((await Opslag.alle("gereedschap")).length === 0) {
+      for (const g of GEREEDSCHAP) {
+        await Opslag.bewaar("gereedschap", {
+          naam: g[0], categorie: g[1], merk: g[2], status: g[3],
+          bijzonderheden: g[3] === "defect" ? "Rubber gescheurd" : g[3] === "afgekeurd" ? "Afgekeurd bij keuring" : "",
+          voorbeeld: true
+        });
+      }
+    }
+    vlag.materieel = true;
+    await Opslag.bewaar("instellingen", vlag);
+    return true;
+  }
+
+  return {
+    zorgVoorMedewerkers: zorgVoorMedewerkers,
+    herstelMedewerkers: herstelMedewerkers,
+    zorgVoorPlanning: zorgVoorPlanning,
+    zorgVoorMaterieel: zorgVoorMaterieel,
+    // Alles wat een pagina met werkopdrachten nodig heeft
+    zorgVoorAlles: async function () {
+      await zorgVoorMedewerkers();
+      await zorgVoorPlanning();
+      await zorgVoorMaterieel();
+    }
+  };
 })();

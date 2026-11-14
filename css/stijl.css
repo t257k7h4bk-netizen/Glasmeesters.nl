@@ -226,6 +226,7 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--goud); bord
 .melding.goed { background: #E7F4EC; color: #1D5E3A; }
 .melding.fout { background: #FBEDEB; color: #8E2A20; }
 .melding.info { background: #EAF1F7; color: var(--blauw-donker); }
+.melding.waarschuwing { background: #FDF1E2; color: #7A4508; }
 
 .kaarten { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
 .kaart h2 { margin-top: 0; }
@@ -358,6 +359,14 @@ input:disabled, select:disabled, textarea:disabled { background: var(--achtergro
 
 /* ---------- Gedeelde onderdelen: werkopdrachtvenster en meldingen ---------- */
 
+.materialen { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.materiaal { display: grid; grid-template-columns: 90px 100px 1fr 40px; gap: 6px; }
+.materiaal input { width: 100%; min-width: 0; }
+.m-weg { border: 1px solid var(--lijn); background: var(--wit); border-radius: 8px; cursor: pointer; color: var(--rood); font-size: 16px; }
+.snelknoppen { display: flex; flex-wrap: wrap; gap: 6px; }
+.snel { font: inherit; font-size: 13px; padding: 6px 10px; border-radius: 16px; border: 1px dashed var(--blauw); background: var(--wit); color: var(--blauw); cursor: pointer; }
+.snel:hover { background: #EAF1F7; }
+
 .breed-venster { width: min(860px, 96vw); }
 .vol { width: 100%; }
 .venster h3.sectie { font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--tekst-zacht); margin: 22px 0 10px; padding-top: 14px; border-top: 1px solid var(--lijn); }
@@ -393,6 +402,7 @@ input:disabled, select:disabled, textarea:disabled { background: var(--achtergro
 .status-tekst.groen { color: var(--groen); }
 .status-tekst.rood { color: var(--rood); font-weight: 600; }
 .status-tekst.grijs { color: var(--grijs); }
+.status-tekst.oranje { color: #9A5A0C; font-weight: 600; }
 
 /* ---------- Melding onderin ---------- */
 
@@ -441,6 +451,7 @@ input:disabled, select:disabled, textarea:disabled { background: var(--achtergro
   .dashboard-kolommen { grid-template-columns: 1fr; gap: 0; }
   .toast { bottom: 80px; }
   .opdracht { grid-template-columns: 1fr; gap: 6px; }
+  .materiaal { grid-template-columns: 70px 80px 1fr 36px; }
   .opdracht-links { flex-direction: row; gap: 10px; align-items: center; }
   .opdracht-rechts { text-align: left; align-items: flex-start; }
   .keuze-item { grid-template-columns: 26px 1fr; }

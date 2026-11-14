@@ -59,6 +59,14 @@
   }
   function naam(m) { return m ? (m.voornaam + " " + m.achternaam) : "Onbekend"; }
   function medewerker(id) { return medewerkers.find(function (m) { return m.id === id; }); }
+  function voertuigNaam(k) {
+    const lijst = Werkopdracht.gegevens().voertuigen || [];
+    const namen = [k.voertuig, k.aanhanger].filter(Boolean).map(function (id) {
+      const v = lijst.find(function (x) { return x.id === id; });
+      return v ? v.naam.replace(/ \(.*\)/, "") : null;
+    }).filter(Boolean);
+    return namen.join(" + ");
+  }
 
   // ---------- Wie staat waar? ----------
   function klussenVan(id, datum) {
@@ -157,6 +165,7 @@
                       '<b>' + k.start + '–' + k.eind + '</b>' +
                       '<span class="klant">' + esc(k.klant) + '</span>' +
                       (stand.soort === "dag" && k.adres ? '<span class="adres">' + esc(k.adres) + '</span>' : "") +
+                      (voertuigNaam(k) ? '<span class="samen">🚐 ' + esc(voertuigNaam(k)) + '</span>' : "") +
                       (anderen.length ? '<span class="samen">met ' + esc(anderen.map(function (x) { return x.voornaam; }).join(", ")) + '</span>' : "") +
                     '</div>';
         });
@@ -503,8 +512,7 @@
   });
 
   async function start() {
-    await Voorbeeld.zorgVoorMedewerkers();
-    await Voorbeeld.zorgVoorPlanning();
+    await Voorbeeld.zorgVoorAlles();
     await Werkopdracht.zorgVoorNummers();
     medewerkers = await Opslag.alle("medewerkers");
     zetIkBen();

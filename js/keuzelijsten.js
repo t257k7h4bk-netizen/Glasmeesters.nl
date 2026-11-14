@@ -71,6 +71,35 @@ const GLASSOORTEN = [
   "Gehard glas", "Figuurglas", "Zonwerend glas", "Brandwerend glas", "Glas-in-lood", "Overig"
 ];
 
+// Veelgebruikte materialen (snelknoppen in de werkopdracht)
+const MATERIALEN = [
+  { omschrijving: "Glaslatten", eenheid: "m" },
+  { omschrijving: "Kit", eenheid: "kokers" },
+  { omschrijving: "Beglazingsband", eenheid: "rol" },
+  { omschrijving: "Stelblokjes", eenheid: "stuks" },
+  { omschrijving: "Afstandhouders", eenheid: "stuks" },
+  { omschrijving: "Glaslatspijkers / schroeven", eenheid: "doos" },
+  { omschrijving: "Grondverf", eenheid: "blik" },
+  { omschrijving: "Afdekfolie", eenheid: "rol" }
+];
+
+const GEREEDSCHAP_CATEGORIEEN = [
+  "Glaszuigers", "Glasliften", "Glasbokken", "Glasdragers", "Accugereedschap",
+  "Boormachines", "Slijpmachines", "Ladders", "Steigers", "Overig"
+];
+
+const GEREEDSCHAP_STATUS = {
+  beschikbaar: "Beschikbaar",
+  in_gebruik: "In gebruik",
+  defect: "Defect",
+  afgekeurd: "Afgekeurd"
+};
+
+const VOERTUIG_STATUS = {
+  actief: "Actief",
+  buiten_gebruik: "Tijdelijk niet inzetbaar"
+};
+
 // Status van een werkopdracht
 const STATUSSEN = [
   { code: "concept",      naam: "Concept",       kleur: "grijs"  },
