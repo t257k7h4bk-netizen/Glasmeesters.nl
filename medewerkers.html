@@ -25,6 +25,11 @@
       Dit zijn <strong>verzonnen voorbeeldmedewerkers</strong> om mee te testen. Namen en telefoonnummers zijn fictief.
     </div>
 
+    <div class="knoppengroep weergave-wissel" role="group" aria-label="Weergave">
+      <button type="button" data-weergave="lijst" class="actief">Medewerkers</button>
+      <button type="button" data-weergave="matrix">Opleidingenoverzicht</button>
+    </div>
+
     <div class="filterbalk">
       <input type="search" id="zoek" placeholder="Zoek op naam, functie of telefoon…" aria-label="Zoeken">
       <select id="groep" aria-label="Groep">
@@ -33,14 +38,19 @@
         <option value="opname">Opnemers</option>
         <option value="buitendienst">Buitendienst</option>
       </select>
+      <select id="soort-filter" aria-label="Soort" hidden>
+        <option value="">Alle opleidingen</option>
+        <option>Rijbewijs</option><option>Certificaat</option><option>Vaardigheid</option><option>Ervaring</option>
+      </select>
       <label class="vinkje"><input type="checkbox" id="inactief"> Toon ook niet-actief</label>
     </div>
 
     <div class="personen" id="lijst"></div>
+    <div class="matrix-houder" id="matrix" hidden></div>
   </main>
 
   <!-- Detailkaart van één medewerker -->
-  <dialog id="detail" class="venster">
+  <dialog id="detail" class="venster breed-venster">
     <form id="formulier" method="dialog">
       <div class="venster-kop">
         <h2 id="venster-titel">Medewerker</h2>
@@ -74,8 +84,9 @@
 
         <div class="recht-bevoegdheden">
           <h3>Opleidingen en bevoegdheden</h3>
-          <p class="uitleg">Aanpassen kan vanaf fase 4. Rood = verlopen, oranje = verloopt binnen 30 dagen.</p>
-          <ul class="bevoegdheden" id="bevoegdheden"></ul>
+          <p class="uitleg">Rood = verlopen, oranje = verloopt binnen 30 dagen. Wettelijk verplichte bevoegdheden
+            (rijbewijzen, hoogwerker, kranen, heftruck) leiden straks tot een blokkade in de planning als ze ontbreken of verlopen zijn.</p>
+          <div id="bevoegdheden"></div>
         </div>
 
         <div class="melding" id="melding-detail"></div>
@@ -102,6 +113,9 @@
     let medewerkers = [];
     let huidige = null;       // de medewerker die open staat
     let nieuweFoto = null;    // undefined = ongewijzigd, "" = verwijderd
+    let concept = [];         // bevoegdheden zoals ze in het venster staan (nog niet opgeslagen)
+    let certificaten = [];    // geüploade certificaten van deze medewerker
+    let weergave = "lijst";
 
     // Onderdelen verbergen die deze rol niet mag zien
     if (!magBewerken) document.body.classList.add("alleen-lezen");
@@ -204,7 +218,7 @@
       await Voorbeeld.zorgVoorMedewerkers();
       medewerkers = await Opslag.alle("medewerkers");
       toonSamenvatting();
-      toonLijst();
+      ververs();
     }
 
     // ----- Detailkaart -----
@@ -252,19 +266,10 @@
       document.getElementById("verwijder").hidden = leeg;
       document.getElementById("melding-detail").className = "melding";
 
-      const items = zichtbareBevoegdheden(g);
-      document.getElementById("bevoegdheden").innerHTML = items.length
-        ? items.map(function (b) {
-            const s = statusBevoegdheid(b);
-            const tot = b.geldig_tot
-              ? "geldig tot " + new Date(b.geldig_tot + "T00:00:00").toLocaleDateString("nl-NL")
-              : "geen vervaldatum";
-            return '<li class="b-' + s + '"><span class="stip ' +
-                   (s === "verlopen" ? "rood" : s === "bijna" ? "oranje" : "groen") + '"></span>' +
-                   '<span>' + esc(bevoegdheidNaam(b.code)) + '</span><span class="zacht">' + tot +
-                   (s === "verlopen" ? " – VERLOPEN" : "") + '</span></li>';
-          }).join("")
-        : '<li class="zacht">Nog geen opleidingen of bevoegdheden ingevuld.</li>';
+      concept = JSON.parse(JSON.stringify(g.bevoegdheden || []));
+      certificaten = [];
+      tekenBevoegdheden();
+      if (!leeg) laadCertificaten(g.id);
 
       venster.querySelectorAll("input, select, textarea").forEach(function (el) {
         if (el.type !== "file") el.disabled = !magBewerken;
@@ -273,6 +278,156 @@
     }
 
     function sluitDetail() { venster.close(); }
+
+    // ----- Opleidingen en bevoegdheden bewerken -----
+    function conceptItem(code) {
+      let item = concept.find(function (b) { return b.code === code; });
+      if (!item) { item = { code: code, behaald: false }; concept.push(item); }
+      return item;
+    }
+
+    async function laadCertificaten(id) {
+      certificaten = (await Opslag.alle("bestanden")).filter(function (b) { return b.medewerker === id; });
+      tekenBevoegdheden();
+    }
+
+    function statusPil(item, def) {
+      const s = statusBevoegdheid(item);
+      if (s === "geen") return '<span class="label st-grijs">Niet behaald</span>';
+      if (s === "verlopen") return '<span class="label rood">Verlopen</span>';
+      if (s === "bijna") return '<span class="label oranje">Verloopt binnenkort</span>';
+      if (def.verloopt && !item.geldig_tot) return '<span class="label oranje">Vervaldatum ontbreekt</span>';
+      return '<span class="label groen">Geldig</span>';
+    }
+
+    function tekenBevoegdheden() {
+      const el = document.getElementById("bevoegdheden");
+      const soorten = ["Rijbewijs", "Certificaat", "Vaardigheid", "Ervaring"];
+      let html = "";
+      soorten.forEach(function (soort) {
+        if (rol === "wagenpark" && soort !== "Rijbewijs") return;
+        const defs = BEVOEGDHEDEN.filter(function (d) { return d.soort === soort; });
+        const rijen = defs.map(function (def) {
+          const item = concept.find(function (b) { return b.code === def.code; }) || { code: def.code, behaald: false };
+          if (!magBewerken && !item.behaald) return "";
+          const cert = certificaten.find(function (c) { return c.bevoegdheid === def.code; });
+          const uit = magBewerken ? "" : " disabled";
+          return '<div class="bev-rij' + (item.behaald ? " aan" : "") + '" data-code="' + def.code + '">' +
+                   '<label class="vinkje bev-naam"><input type="checkbox" data-veld="behaald"' + (item.behaald ? " checked" : "") + uit + '> ' +
+                     esc(def.naam) + (def.wettelijk ? ' <span class="wettelijk" title="Wettelijk verplicht">§</span>' : "") + '</label>' +
+                   (item.behaald ?
+                     '<span class="bev-veld"><span class="mini-label">Behaald op</span><input type="date" data-veld="datum_behaald" value="' + esc(item.datum_behaald || "") + '"' + uit + '></span>' +
+                     (def.verloopt ? '<span class="bev-veld"><span class="mini-label">Geldig tot</span><input type="date" data-veld="geldig_tot" value="' + esc(item.geldig_tot || "") + '"' + uit + '></span>' : '<span class="bev-veld"></span>') +
+                     '<span class="bev-veld bev-opm"><span class="mini-label">Opmerking</span><input data-veld="opmerking" value="' + esc(item.opmerking || "") + '"' + uit + '></span>' +
+                     '<span class="bev-cert">' +
+                       (cert ? '<button type="button" class="link-knop" data-cert-open="' + cert.id + '">📄 ' + esc(cert.naam) + '</button>' +
+                               (magBewerken ? '<button type="button" class="m-weg klein-weg" data-cert-weg="' + cert.id + '" aria-label="Certificaat verwijderen">✕</button>' : "")
+                             : (magBewerken && huidige ? '<label class="link-knop" for="cert-' + def.code + '">⬆ Certificaat</label><input type="file" id="cert-' + def.code + '" data-cert-upload="' + def.code + '" accept=".pdf,image/*" hidden>' : "")) +
+                     '</span>'
+                     : '<span class="bev-leeg"></span>') +
+                   '<span class="bev-status">' + statusPil(item, def) + '</span>' +
+                 '</div>';
+        }).join("");
+        if (rijen.trim()) html += '<h4 class="bev-soort">' + soort + (soort === "Certificaat" ? "en" : soort === "Vaardigheid" ? "en" : "") + '</h4>' + rijen;
+      });
+      if (!html) html = '<p class="zacht">Nog geen opleidingen of bevoegdheden ingevuld.</p>';
+      if (magBewerken && !huidige) html += '<p class="zacht">Certificaten uploaden kan nadat de medewerker is opgeslagen.</p>';
+      el.innerHTML = html;
+    }
+
+    const bevEl = document.getElementById("bevoegdheden");
+    bevEl.addEventListener("change", async function (e) {
+      const rij = e.target.closest(".bev-rij");
+      if (!rij || !magBewerken) return;
+      const code = rij.dataset.code;
+      if (e.target.dataset.certUpload) {
+        const bestand = e.target.files[0];
+        if (!bestand) return;
+        if (bestand.size > 10 * 1024 * 1024) { alert("Het bestand is groter dan 10 MB."); return; }
+        const oud = certificaten.find(function (c) { return c.bevoegdheid === code; });
+        if (oud) await Opslag.verwijder("bestanden", oud.id);
+        await Opslag.bewaar("bestanden", { medewerker: huidige.id, bevoegdheid: code, soort: "certificaat",
+          naam: bestand.name, type: bestand.type, grootte: bestand.size, data: bestand });
+        await laadCertificaten(huidige.id);
+        return;
+      }
+      const veld = e.target.dataset.veld;
+      if (!veld) return;
+      const item = conceptItem(code);
+      item[veld] = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+      if (veld === "behaald" && item.behaald && !item.datum_behaald) item.datum_behaald = new Date().toISOString().slice(0, 10);
+      tekenBevoegdheden();
+    });
+    bevEl.addEventListener("input", function (e) {
+      if (e.target.dataset.veld !== "opmerking") return;
+      conceptItem(e.target.closest(".bev-rij").dataset.code).opmerking = e.target.value;
+    });
+    bevEl.addEventListener("click", async function (e) {
+      const open = e.target.closest("[data-cert-open]");
+      if (open) {
+        const c = certificaten.find(function (x) { return x.id === open.dataset.certOpen; });
+        if (c) { const a = document.createElement("a"); a.href = URL.createObjectURL(c.data); a.target = "_blank"; a.rel = "noopener"; document.body.appendChild(a); a.click(); a.remove(); }
+        return;
+      }
+      const weg = e.target.closest("[data-cert-weg]");
+      if (weg && confirm("Certificaat verwijderen?")) {
+        await Opslag.verwijder("bestanden", weg.dataset.certWeg);
+        await laadCertificaten(huidige.id);
+      }
+    });
+
+    // ----- Opleidingenoverzicht (matrix) -----
+    function toonMatrix() {
+      const soort = document.getElementById("soort-filter").value;
+      const zoek = document.getElementById("zoek").value.trim().toLowerCase();
+      const groep = document.getElementById("groep").value;
+      const ookInactief = document.getElementById("inactief").checked;
+      const defs = BEVOEGDHEDEN.filter(function (d) {
+        if (rol === "wagenpark") return d.soort === "Rijbewijs";
+        return !soort || d.soort === soort;
+      });
+      const mensen = medewerkers
+        .filter(function (m) { return ookInactief || m.actief; })
+        .filter(function (m) { return !groep || groepVanFunctie(m.functie) === groep; })
+        .filter(function (m) { return !zoek || volledigeNaam(m).toLowerCase().indexOf(zoek) !== -1; })
+        .sort(function (a, b) { return a.voornaam.localeCompare(b.voornaam, "nl"); });
+      const telling = {};
+      let html = '<table class="matrix"><thead><tr><th class="m-naam">Medewerker</th>' +
+        defs.map(function (d) { return '<th><span>' + esc(d.naam) + '</span></th>'; }).join("") + '</tr></thead><tbody>';
+      mensen.forEach(function (m) {
+        html += '<tr><th class="m-naam"><button type="button" class="link-knop" data-open="' + m.id + '">' + esc(volledigeNaam(m)) + '</button></th>';
+        defs.forEach(function (d) {
+          const item = (m.bevoegdheden || []).find(function (b) { return b.code === d.code; });
+          const s = statusBevoegdheid(item);
+          const teken = s === "geldig" ? "✓" : s === "bijna" ? "!" : s === "verlopen" ? "✕" : "";
+          const titel = item && item.behaald ? (item.geldig_tot ? "geldig tot " + new Date(item.geldig_tot + "T00:00:00").toLocaleDateString("nl-NL") : "behaald") : "niet behaald";
+          if (s !== "geen") telling[d.code] = (telling[d.code] || 0) + (s === "verlopen" ? 0 : 1);
+          html += '<td class="m-' + s + '" title="' + esc(volledigeNaam(m) + " – " + d.naam + ": " + titel) + '">' + teken + '</td>';
+        });
+        html += '</tr>';
+      });
+      html += '</tbody><tfoot><tr><th class="m-naam">Aantal geldig</th>' +
+        defs.map(function (d) { return '<td>' + (telling[d.code] || 0) + '</td>'; }).join("") + '</tr></tfoot></table>';
+      document.getElementById("matrix").innerHTML = mensen.length ? html : '<div class="binnenkort">Geen medewerkers gevonden.</div>';
+    }
+
+    document.querySelectorAll(".weergave-wissel button").forEach(function (k) {
+      k.addEventListener("click", function () {
+        weergave = k.dataset.weergave;
+        document.querySelectorAll(".weergave-wissel button").forEach(function (x) { x.classList.toggle("actief", x === k); });
+        document.getElementById("lijst").hidden = weergave !== "lijst";
+        document.getElementById("matrix").hidden = weergave !== "matrix";
+        document.getElementById("soort-filter").hidden = weergave !== "matrix";
+        ververs();
+      });
+    });
+    document.getElementById("matrix").addEventListener("click", function (e) {
+      const k = e.target.closest("[data-open]");
+      if (k) openDetail(medewerkers.find(function (m) { return m.id === k.dataset.open; }));
+    });
+    document.getElementById("soort-filter").addEventListener("change", function () { ververs(); });
+
+    function ververs() { if (weergave === "matrix") toonMatrix(); else toonLijst(); }
 
     document.getElementById("lijst").addEventListener("click", function (e) {
       const knop = e.target.closest(".persoon");
@@ -329,7 +484,8 @@
         in_dienst_sinds: document.getElementById("in-dienst").value,
         rol: document.getElementById("rol-programma").value,
         actief: document.getElementById("actief").checked,
-        bijzonderheden: document.getElementById("bijzonderheden").value.trim()
+        bijzonderheden: document.getElementById("bijzonderheden").value.trim(),
+        bevoegdheden: concept.filter(function (b) { return b.behaald; })
       });
       if (nieuweFoto !== undefined) m.foto = nieuweFoto;
       await Opslag.bewaar("medewerkers", m);
@@ -341,14 +497,15 @@
     document.getElementById("verwijder").addEventListener("click", async function () {
       if (!huidige) return;
       if (!confirm(volledigeNaam(huidige) + " definitief verwijderen?\n\nTip: zet iemand liever op 'niet actief', dan blijft de geschiedenis bewaard.")) return;
+      for (const c of certificaten) await Opslag.verwijder("bestanden", c.id);
       await Opslag.verwijder("medewerkers", huidige.id);
       sluitDetail();
       await laad();
     });
 
-    document.getElementById("zoek").addEventListener("input", toonLijst);
-    document.getElementById("groep").addEventListener("change", toonLijst);
-    document.getElementById("inactief").addEventListener("change", toonLijst);
+    document.getElementById("zoek").addEventListener("input", function () { ververs(); });
+    document.getElementById("groep").addEventListener("change", function () { ververs(); });
+    document.getElementById("inactief").addEventListener("change", function () { ververs(); });
 
     laad();
   }

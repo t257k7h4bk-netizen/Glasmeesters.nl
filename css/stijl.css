@@ -247,6 +247,18 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--goud); bord
 .zacht { color: var(--tekst-zacht); font-size: 14px; }
 .knop.klein { padding: 7px 12px; font-size: 14px; }
 
+/* ---------- Knoppengroep (bijv. weergave wisselen) ---------- */
+
+.knoppengroep { display: flex; flex-wrap: wrap; border: 1px solid var(--lijn); border-radius: 10px; overflow: hidden; background: var(--wit); }
+.knoppengroep button {
+  font: inherit; font-size: 15px; border: none; background: none; padding: 10px 14px; cursor: pointer; color: var(--blauw);
+  border-right: 1px solid var(--lijn);
+}
+.knoppengroep button:last-child { border-right: none; }
+.knoppengroep button.actief { background: var(--blauw); color: var(--wit); font-weight: 600; }
+.knoppengroep .pijl { font-size: 22px; line-height: 1; padding: 6px 14px; }
+.weergave-wissel { display: inline-flex; margin-top: 8px; }
+
 /* ---------- Medewerkers ---------- */
 
 .personen { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
@@ -302,6 +314,39 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--goud); bord
 .alleen-lezen .alleen-beheerder { display: none !important; }
 .verberg-telefoon .recht-telefoon { display: none; }
 .verberg-bevoegdheden .recht-bevoegdheden { display: none; }
+
+/* ---------- Opleidingen en bevoegdheden ---------- */
+
+.bev-soort { font-size: 14px; color: var(--tekst-zacht); margin: 16px 0 6px; text-transform: uppercase; letter-spacing: 0.4px; }
+.bev-rij {
+  display: grid; grid-template-columns: minmax(170px, 1.3fr) 132px 132px minmax(100px, 1fr) 118px 128px;
+  gap: 8px; align-items: end; padding: 8px 0; border-bottom: 1px solid var(--lijn);
+}
+.bev-rij:not(.aan) { align-items: center; }
+.bev-naam { font-weight: 600; font-size: 15px; align-self: center; }
+.bev-veld { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.bev-veld input { width: 100%; padding: 6px 8px; font-size: 15px; }
+.mini-label { font-size: 11px; color: var(--tekst-zacht); }
+.bev-leeg { grid-column: 2 / 6; }
+.bev-cert { display: flex; gap: 4px; align-items: center; min-width: 0; align-self: center; }
+.bev-status { align-self: center; }
+.bev-status .label { margin-top: 0; }
+.wettelijk { color: var(--rood); font-weight: 700; font-size: 13px; }
+.link-knop { background: none; border: none; padding: 0; color: var(--blauw); text-decoration: underline; cursor: pointer; font: inherit; font-size: 14px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.klein-weg { width: 26px; height: 26px; font-size: 12px; padding: 0; }
+
+.matrix-houder { overflow: auto; background: var(--wit); border: 1px solid var(--lijn); border-radius: var(--rand); max-height: calc(100vh - 260px); }
+.matrix { border-collapse: separate; border-spacing: 0; font-size: 14px; }
+.matrix th, .matrix td { border-bottom: 1px solid var(--lijn); border-right: 1px solid var(--lijn); padding: 6px; text-align: center; }
+.matrix thead th { position: sticky; top: 0; background: var(--blauw); color: var(--wit); z-index: 2; vertical-align: bottom; height: 150px; font-weight: 600; font-size: 12px; }
+.matrix thead th span { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; display: inline-block; }
+.matrix .m-naam { position: sticky; left: 0; background: var(--wit); text-align: left; z-index: 1; min-width: 170px; }
+.matrix thead .m-naam { z-index: 3; background: var(--blauw); vertical-align: middle; }
+.matrix tfoot th, .matrix tfoot td { font-weight: 600; background: var(--achtergrond); }
+.matrix td { width: 34px; min-width: 34px; font-weight: 700; }
+.matrix td.m-geldig { background: #E7F4EC; color: var(--groen); }
+.matrix td.m-bijna { background: #FDF1E2; color: #9A5A0C; }
+.matrix td.m-verlopen { background: #FBEDEB; color: var(--rood); }
 
 /* ---------- Venster (detailkaart) ---------- */
 
@@ -486,6 +531,9 @@ input:disabled, select:disabled, textarea:disabled { background: var(--achtergro
   .status-tekst { grid-column: 2; text-align: left; }
   .dagregel .tijd { min-width: 80px; }
   .velden-2, .bevoegdheden { grid-template-columns: 1fr; }
+  .bev-rij { grid-template-columns: 1fr 1fr; }
+  .bev-naam, .bev-opm { grid-column: 1 / -1; }
+  .bev-leeg { display: none; }
   .venster { width: 100vw; max-width: 100vw; max-height: 100vh; height: 100%; border-radius: 0; margin: 0; }
   .venster form { max-height: 100vh; height: 100%; }
   .venster-inhoud { flex: 1; }

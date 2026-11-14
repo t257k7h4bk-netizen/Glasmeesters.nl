@@ -34,7 +34,11 @@ glasopnames, voertuigen en gereedschap in één programma.
 - [x] Stap 3b – Voertuig, materialen en gereedschap
 - [x] Stap 3c – Foto's en documenten
 - [x] Stap 3d – WhatsApp (stap 1: vooraf ingevuld bericht)
-- [ ] Fase 4 – Bevoegdheden, voertuigen, gereedschap, onderhoud en keuringen
+- [x] Stap 4a – Opleidingen en bevoegdheden bewerken + opleidingenoverzicht
+- [ ] Stap 4b – Automatische waarschuwingen en blokkades
+- [ ] Stap 4c – Voertuigenbeheer
+- [ ] Stap 4d – Gereedschapsbeheer
+- [ ] Stap 4e – Meldingen op het dashboard
 
 Tijdens het bouwen worden gegevens alleen lokaal in de browser opgeslagen en gebruiken we
 uitsluitend fictieve gegevens.
