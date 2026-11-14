@@ -100,6 +100,42 @@ const VOERTUIG_STATUS = {
   buiten_gebruik: "Tijdelijk niet inzetbaar"
 };
 
+const VOERTUIG_SOORTEN = { bus: "Bus", bakwagen: "Bakwagen", auto: "Auto", aanhanger: "Aanhanger" };
+const BRANDSTOFFEN = ["Diesel", "Benzine", "Elektrisch", "Hybride", "LPG", "Geen (aanhanger)"];
+const ONDERHOUD_SOORTEN = ["Onderhoudsbeurt", "APK", "Keuring", "Reparatie", "Banden", "Schade", "Overig"];
+
+function datumNL(iso) {
+  return iso ? new Date(iso + "T00:00:00").toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" }) : "";
+}
+
+// Vervaldatum t.o.v. een dag: "verlopen", "bijna" (binnen 30 dagen), "geldig" of "geen"
+function vervalStatus(datum, opDatum) {
+  if (!datum) return "geen";
+  return statusBevoegdheid({ behaald: true, geldig_tot: datum }, opDatum);
+}
+
+// Alle aandachtspunten van een voertuig (of gereedschap) op een dag
+// niveau: "rood" = actie vereist, "oranje" = aandacht nodig, "grijs" = niet actief
+function voertuigMeldingen(v, opDatum) {
+  const m = [];
+  if (v.status === "buiten_gebruik") m.push({ niveau: "grijs", soort: "status", tekst: "Tijdelijk niet inzetbaar" + (v.bijzonderheden ? " – " + v.bijzonderheden : "") });
+  const apk = vervalStatus(v.apk_tot, opDatum);
+  if (apk === "verlopen") m.push({ niveau: "rood", soort: "apk", tekst: "APK verlopen sinds " + datumNL(v.apk_tot) });
+  else if (apk === "bijna") m.push({ niveau: "oranje", soort: "apk", tekst: "APK verloopt op " + datumNL(v.apk_tot) });
+  const vz = vervalStatus(v.verzekering_tot, opDatum);
+  if (vz === "verlopen") m.push({ niveau: "rood", soort: "verzekering", tekst: "Verzekering verlopen sinds " + datumNL(v.verzekering_tot) });
+  else if (vz === "bijna") m.push({ niveau: "oranje", soort: "verzekering", tekst: "Verzekering verloopt op " + datumNL(v.verzekering_tot) });
+  const ond = vervalStatus(v.volgende_onderhoud, opDatum);
+  if (ond === "verlopen") m.push({ niveau: "rood", soort: "onderhoud", tekst: "Onderhoud te laat (gepland " + datumNL(v.volgende_onderhoud) + ")" });
+  else if (ond === "bijna") m.push({ niveau: "oranje", soort: "onderhoud", tekst: "Onderhoud gepland op " + datumNL(v.volgende_onderhoud) });
+  if (v.onderhoud_interval_km && v.km_laatste_onderhoud !== undefined && v.km_laatste_onderhoud !== "" && v.kilometerstand) {
+    const rest = Number(v.km_laatste_onderhoud) + Number(v.onderhoud_interval_km) - Number(v.kilometerstand);
+    if (rest <= 0) m.push({ niveau: "rood", soort: "onderhoud", tekst: "Onderhoud nodig: " + Math.abs(rest).toLocaleString("nl-NL") + " km over de grens" });
+    else if (rest <= 1500) m.push({ niveau: "oranje", soort: "onderhoud", tekst: "Onderhoud over " + rest.toLocaleString("nl-NL") + " km" });
+  }
+  return m;
+}
+
 // Welke ervaring hoort bij welk werk of glas (geeft een oranje waarschuwing als niemand het heeft)
 const ERVARING_VOOR_WERK = {
   "Triple glas plaatsen": "ervaring_triple",

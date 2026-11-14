@@ -113,6 +113,14 @@ const Werkopdracht = (function () {
     [v, a].forEach(function (x) {
       if (!x) return;
       if (x.status === "buiten_gebruik") rood.push({ tekst: x.naam + " is tijdelijk niet inzetbaar" + (x.bijzonderheden ? " (" + x.bijzonderheden + ")" : "") + ".", soort: "dubbel" });
+      // APK of verzekering verlopen op de dag van de klus: mag de weg niet op
+      voertuigMeldingen(x, klus.datum).forEach(function (mld) {
+        if (mld.niveau === "rood" && (mld.soort === "apk" || mld.soort === "verzekering")) {
+          rood.push({ tekst: x.naam + ": " + mld.tekst + ". Dit voertuig mag niet de weg op.", soort: "dubbel" });
+        } else if (mld.soort === "onderhoud" && mld.niveau === "rood") {
+          oranje.push(x.naam + ": " + mld.tekst + ".");
+        }
+      });
       ctx.klussen.forEach(function (k) {
         if (k.id === klus.id || !telt(k) || k.datum !== klus.datum) return;
         if (k.voertuig !== x.id && k.aanhanger !== x.id) return;
@@ -521,8 +529,11 @@ const Werkopdracht = (function () {
     const huidigA = $("wo-aanhanger").value || (huidige && huidige.aanhanger) || "";
     const optie = function (v, gekozenId) {
       let extra = "";
+      const datumKlus = $("wo-datum").value;
+      const wegverbod = datumKlus ? voertuigMeldingen(v, datumKlus).find(function (m) { return m.niveau === "rood" && (m.soort === "apk" || m.soort === "verzekering"); }) : null;
       if (v.status === "buiten_gebruik") extra = " – niet inzetbaar";
-      else { const b = bezetDoor("voertuig", v.id); if (b) extra = " – bezet " + b.start + "–" + b.eind + " (" + b.klant + ")"; }
+      else if (wegverbod) extra = " – " + (wegverbod.soort === "apk" ? "APK verlopen" : "verzekering verlopen");
+      if (!extra) { const b = bezetDoor("voertuig", v.id); if (b) extra = " – bezet " + b.start + "–" + b.eind + " (" + b.klant + ")"; }
       return '<option value="' + v.id + '"' + (v.id === gekozenId ? " selected" : "") + '>' +
              esc(v.naam + " · " + v.merk + " " + v.type + " · " + v.kenteken + extra) + '</option>';
     };

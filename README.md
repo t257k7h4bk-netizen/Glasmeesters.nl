@@ -18,6 +18,7 @@ glasopnames, voertuigen en gereedschap in één programma.
 | `planning.html`, `js/planning.js`, `css/planning.css` | Planning: rooster, klussen, afwezigheid, verslepen, controles op dubbele boekingen |
 | `werkopdrachten.html`, `js/werkopdracht.js` | Werkopdrachtenlijst en het gedeelde werkopdrachtvenster (ook gebruikt in de planning) |
 | `js/whatsapp.js` | WhatsApp-bericht samenstellen uit een werkopdracht (sjabloon aanpasbaar in Beheer) |
+| `voertuigen.html`, `js/voertuigen.js` | Wagenpark: APK, verzekering, onderhoud (datum en km), historie, inzet |
 | `beheer.html` | Instellingen (dagdelen), back-up downloaden/terugzetten, alles wissen |
 | `img/` | Pictogrammen voor het beginscherm van tablet en telefoon |
 | `manifest.webmanifest` | Zorgt dat het programma als app op het beginscherm kan |
@@ -36,7 +37,7 @@ glasopnames, voertuigen en gereedschap in één programma.
 - [x] Stap 3d – WhatsApp (stap 1: vooraf ingevuld bericht)
 - [x] Stap 4a – Opleidingen en bevoegdheden bewerken + opleidingenoverzicht
 - [x] Stap 4b – Automatische waarschuwingen en blokkades
-- [ ] Stap 4c – Voertuigenbeheer
+- [x] Stap 4c – Voertuigenbeheer
 - [ ] Stap 4d – Gereedschapsbeheer
 - [ ] Stap 4e – Meldingen op het dashboard
 

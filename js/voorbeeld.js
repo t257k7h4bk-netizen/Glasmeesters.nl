@@ -320,6 +320,42 @@ const Voorbeeld = (function () {
       await zorgVoorMedewerkers();
       await zorgVoorPlanning();
       await zorgVoorMaterieel();
+      // Fase 4: voertuigdetails aanvullen (ook in eerder geladen gegevens)
+      const vlag = (await Opslag.haal("instellingen", "voorbeeld")) || { id: "voorbeeld" };
+      if (!vlag.voertuigdetails) {
+        const mensen = await Opslag.alle("medewerkers");
+        const idVan = function (n) { const m = mensen.find(function (x) { return x.voornaam + " " + x.achternaam === n; }); return m ? m.id : ""; };
+        // naam: [bouwjaar, km, brandstof, apk (dagen vanaf nu), verzekering (dagen), km laatste onderhoud, interval km, volgend onderhoud (dagen), verantwoordelijke]
+        const DETAILS = {
+          "Bus 1": [2021, 84200, "Diesel", 210, 160, 80000, 30000, 120, "Peter de Vries"],
+          "Bus 2": [2020, 112500, "Diesel", 95, 160, 90000, 30000, 60, "Bert Huizinga"],
+          "Bus 3": [2019, 143800, "Diesel", 20, 160, 120000, 30000, 75, "Wim Wierenga"],
+          "Bus 4": [2018, 178900, "Diesel", 140, 160, 150000, 30000, 40, "Gerrit Meijer"],
+          "Bus 5": [2022, 61300, "Diesel", 300, 160, 60000, 30000, 200, "Thomas Visser"],
+          "Bus 6": [2016, 231000, "Diesel", 50, 160, 210000, 30000, 10, "Sven Hofstra"],
+          "Bakwagen": [2017, 198400, "Diesel", 180, 25, 170000, 40000, 90, "Bert Huizinga"],
+          "Opnamewagen 1": [2023, 28400, "Elektrisch", 700, 160, 20000, 30000, 250, "Henk Dijkstra"],
+          "Opnamewagen 2": [2021, 54800, "Benzine", 260, 160, 40000, 20000, 150, "Femke Bosma"],
+          "Aanhanger 1 (glasbok)": [2019, "", "Geen (aanhanger)", 120, 160, "", "", 180, "Peter de Vries"],
+          "Aanhanger 2 (open)": [2015, "", "Geen (aanhanger)", null, 160, "", "", 300, "Monique Veenstra"]
+        };
+        const voertuigen = await Opslag.alle("voertuigen");
+        for (const v of voertuigen) {
+          const d = DETAILS[v.naam];
+          if (!v.voorbeeld || !d || v.bouwjaar) continue;
+          Object.assign(v, {
+            bouwjaar: d[0], kilometerstand: d[1], brandstof: d[2],
+            apk_tot: d[3] === null ? "" : dag(d[3]),
+            verzekeraar: "Voorbeeld Verzekeringen", polisnummer: "POL-" + v.kenteken.replace(/-/g, ""), verzekering_tot: dag(d[4]),
+            km_laatste_onderhoud: d[5], onderhoud_interval_km: d[6], datum_laatste_onderhoud: dag(-200),
+            volgende_onderhoud: dag(d[7]), verantwoordelijke: idVan(d[8])
+          });
+          await Opslag.bewaar("voertuigen", v);
+        }
+        vlag.voertuigdetails = true;
+        await Opslag.bewaar("instellingen", vlag);
+      }
+
       // Fase 4: de minihijskraan vraagt een certificaat (ook in eerder geladen gegevens)
       const lijst = await Opslag.alle("gereedschap");
       for (const g of lijst) {

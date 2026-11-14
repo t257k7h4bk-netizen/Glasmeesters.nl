@@ -13,13 +13,115 @@
 <body data-pagina="voertuigen">
 
   <main class="inhoud">
-    <h1>Voertuigen</h1>
-    <p class="ondertitel">Wagenpark, APK, verzekering en onderhoud.</p>
-    <div class="binnenkort">
-      Dit onderdeel bouwen we in <strong>fase 4</strong>.
+    <div class="paginakop">
+      <div>
+        <h1>Voertuigen</h1>
+        <p class="ondertitel" id="samenvatting">Bezig met laden…</p>
+      </div>
+      <button class="knop alleen-wagenpark" id="nieuw">+ Nieuw voertuig</button>
     </div>
+
+    <div class="knoppengroep weergave-wissel" role="group" aria-label="Filter" id="filters">
+      <button type="button" data-filter="alle" class="actief">Alle</button>
+      <button type="button" data-filter="aandacht">Aandacht nodig</button>
+      <button type="button" data-filter="apk">APK binnen 30 dagen</button>
+      <button type="button" data-filter="onderhoud">Onderhoud nodig</button>
+      <button type="button" data-filter="niet">Niet inzetbaar</button>
+    </div>
+
+    <div class="filterbalk">
+      <input type="search" id="zoek" placeholder="Zoek op naam, kenteken of merk…" aria-label="Zoeken">
+    </div>
+
+    <div class="voertuigen" id="lijst"></div>
   </main>
 
+  <!-- Detail -->
+  <dialog id="detail" class="venster breed-venster">
+    <form id="formulier" method="dialog">
+      <div class="venster-kop">
+        <div><h2 id="titel">Voertuig</h2><span class="zacht" id="subtitel"></span></div>
+        <button type="button" class="sluit" data-sluit aria-label="Sluiten">✕</button>
+      </div>
+      <div class="venster-inhoud">
+        <div id="meldingen"></div>
+
+        <h3 class="sectie">Algemeen</h3>
+        <div class="foto-blok">
+          <div class="voertuig-foto groot" id="foto-voorbeeld">🚐</div>
+          <div class="alleen-wagenpark">
+            <label class="knop tweede klein" for="foto-bestand">Foto kiezen</label>
+            <input type="file" id="foto-bestand" accept="image/*" hidden>
+            <button type="button" class="knop tweede klein" id="foto-weg">Foto verwijderen</button>
+          </div>
+        </div>
+        <div class="velden-2">
+          <div class="veld"><label for="v-naam">Naam of nummer</label><input id="v-naam" required placeholder="Bijv. Bus 7"></div>
+          <div class="veld"><label for="v-soort">Soort</label><select id="v-soort"></select></div>
+          <div class="veld"><label for="v-merk">Merk</label><input id="v-merk"></div>
+          <div class="veld"><label for="v-type">Type</label><input id="v-type"></div>
+          <div class="veld"><label for="v-kenteken">Kenteken</label><input id="v-kenteken" style="text-transform:uppercase" placeholder="XX-123-X"></div>
+          <div class="veld"><label for="v-bouwjaar">Bouwjaar</label><input id="v-bouwjaar" type="number" inputmode="numeric" min="1980" max="2100"></div>
+          <div class="veld"><label for="v-brandstof">Brandstof of aandrijving</label><select id="v-brandstof"></select></div>
+          <div class="veld"><label for="v-rijbewijs">Benodigd rijbewijs</label><select id="v-rijbewijs"></select></div>
+          <div class="veld"><label for="v-status">Status</label><select id="v-status"></select></div>
+          <div class="veld"><label for="v-verantwoordelijke">Verantwoordelijke medewerker</label><select id="v-verantwoordelijke"></select></div>
+        </div>
+        <div class="veld"><label for="v-bijz">Bijzonderheden</label><textarea id="v-bijz" rows="2" style="width:100%"></textarea></div>
+
+        <h3 class="sectie">Kilometerstand en onderhoud</h3>
+        <div class="velden-2">
+          <div class="veld"><label for="v-km">Huidige kilometerstand</label><input id="v-km" type="number" inputmode="numeric" min="0"></div>
+          <div class="veld"><label for="v-interval">Onderhoud elke … km</label><input id="v-interval" type="number" inputmode="numeric" min="0" placeholder="Bijv. 30000"></div>
+          <div class="veld"><label for="v-laatste-datum">Datum laatste onderhoud</label><input id="v-laatste-datum" type="date"></div>
+          <div class="veld"><label for="v-laatste-km">Kilometerstand laatste onderhoud</label><input id="v-laatste-km" type="number" inputmode="numeric" min="0"></div>
+          <div class="veld"><label for="v-volgende">Volgende onderhoudsbeurt (datum)</label><input id="v-volgende" type="date"></div>
+        </div>
+
+        <h3 class="sectie">APK en verzekering</h3>
+        <div class="velden-2">
+          <div class="veld"><label for="v-apk">APK geldig tot</label><input id="v-apk" type="date"></div>
+          <div class="veld"><label for="v-verzekeraar">Verzekeraar</label><input id="v-verzekeraar"></div>
+          <div class="veld"><label for="v-polis">Polisnummer</label><input id="v-polis"></div>
+          <div class="veld"><label for="v-verzekering">Verzekering geldig tot</label><input id="v-verzekering" type="date"></div>
+        </div>
+
+        <h3 class="sectie">Onderhoudshistorie</h3>
+        <div id="historie"></div>
+        <details class="toevoegen alleen-wagenpark" id="toevoegen">
+          <summary class="knop tweede klein">+ Onderhoud, APK of reparatie vastleggen</summary>
+          <div class="velden-2" style="margin-top:12px">
+            <div class="veld"><label for="h-datum">Datum</label><input id="h-datum" type="date"></div>
+            <div class="veld"><label for="h-soort">Soort</label><select id="h-soort"></select></div>
+            <div class="veld"><label for="h-km">Kilometerstand</label><input id="h-km" type="number" inputmode="numeric" min="0"></div>
+            <div class="veld"><label for="h-kosten">Kosten (€)</label><input id="h-kosten" type="number" inputmode="decimal" min="0" step="0.01"></div>
+            <div class="veld"><label for="h-door">Uitgevoerd door</label><input id="h-door" placeholder="Bijv. garage of naam"></div>
+            <div class="veld" id="h-apk-veld" hidden><label for="h-apk">Nieuwe APK geldig tot</label><input id="h-apk" type="date"></div>
+            <div class="veld" id="h-volgende-veld"><label for="h-volgende">Volgende onderhoud (datum)</label><input id="h-volgende" type="date"></div>
+          </div>
+          <div class="veld"><label for="h-oms">Omschrijving</label><input id="h-oms" style="width:100%"></div>
+          <button type="button" class="knop klein" id="h-opslaan">Vastleggen</button>
+          <p class="zacht">Bij een onderhoudsbeurt of APK worden de gegevens van het voertuig hierboven vanzelf bijgewerkt.</p>
+        </details>
+
+        <h3 class="sectie">Ingepland</h3>
+        <div id="inzet"></div>
+
+        <div class="melding" id="melding"></div>
+      </div>
+      <div class="venster-voet alleen-wagenpark">
+        <button type="button" class="knop gevaar" id="verwijder">Verwijderen</button>
+        <span class="ruimte"></span>
+        <button type="button" class="knop tweede" data-sluit>Annuleren</button>
+        <button type="submit" class="knop">Opslaan</button>
+      </div>
+    </form>
+  </dialog>
+
   <script src="js/layout.js"></script>
+  <script src="js/opslag.js"></script>
+  <script src="js/keuzelijsten.js"></script>
+  <script src="js/voorbeeld.js"></script>
+  <script src="js/voertuigen.js"></script>
 </body>
 </html>
