@@ -129,6 +129,29 @@ h2 { font-size: 19px; margin: 28px 0 12px; color: var(--blauw-donker); }
 .tegel .getal { font-size: 30px; font-weight: 700; margin: 6px 0 4px; }
 .tegel .status { font-size: 14px; display: flex; align-items: center; gap: 8px; }
 
+a.tegel { display: block; text-decoration: none; color: inherit; }
+.tegel.klikbaar:hover { border-color: var(--blauw); }
+.tegel.rand-groen { border-top: 4px solid var(--groen); }
+.tegel.rand-oranje { border-top: 4px solid var(--oranje); }
+.tegel.rand-rood { border-top: 4px solid var(--rood); }
+.tegel.rand-grijs { border-top: 4px solid var(--lijn); }
+.tegel.rand-grijs .getal { color: var(--grijs); }
+
+.dashboard-kolommen { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.lijst-kaart { padding: 6px 0; }
+.actieregel, .dagregel {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 11px 18px; border-bottom: 1px solid var(--lijn);
+  color: inherit; text-decoration: none; font-size: 15px;
+}
+.actieregel:last-child, .dagregel:last-child { border-bottom: none; }
+.actieregel:hover, .dagregel:hover { background: var(--achtergrond); }
+.actieregel .stip { margin-top: 6px; }
+.dagregel .tijd { font-weight: 700; color: var(--blauw-donker); min-width: 96px; font-size: 14px; padding-top: 1px; }
+.dagregel .wat { display: flex; flex-direction: column; gap: 2px; }
+.leeg-tekst { display: flex; gap: 10px; align-items: center; padding: 12px 18px; margin: 0; color: var(--tekst-zacht); }
+.rood-tekst { color: var(--rood); font-weight: 600; }
+
 .stip { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 .stip.groen { background: var(--groen); }
 .stip.oranje { background: var(--oranje); }
@@ -334,6 +357,8 @@ input:disabled, select:disabled, textarea:disabled { background: var(--achtergro
   .rolbalk select { padding: 4px 8px; }
   .kaarten { grid-template-columns: 1fr; }
   .personen { grid-template-columns: 1fr; }
+  .dashboard-kolommen { grid-template-columns: 1fr; gap: 0; }
+  .dagregel .tijd { min-width: 80px; }
   .velden-2, .bevoegdheden { grid-template-columns: 1fr; }
   .venster { width: 100vw; max-width: 100vw; max-height: 100vh; height: 100%; border-radius: 0; margin: 0; }
   .venster form { max-height: 100vh; height: 100%; }

@@ -7,7 +7,7 @@ glasopnames, voertuigen en gereedschap in één programma.
 
 | Map / bestand | Wat het is |
 | --- | --- |
-| `index.html` | Startscherm (dashboard) |
+| `index.html`, `js/dashboard.js` | Startscherm (dashboard) met tellers, actielijst en dagplanning |
 | `planning.html`, `medewerkers.html`, … | Eén pagina per tabblad |
 | `css/stijl.css` | Huisstijl en opmaak. Kleuren staan bovenaan op één plek |
 | `js/layout.js` | Het menu dat op elke pagina verschijnt, plus welke rol wat mag zien |
@@ -27,7 +27,8 @@ glasopnames, voertuigen en gereedschap in één programma.
 - [x] Stap 2b – Rollen nagespeeld, lokale opslag, back-upknoppen
 - [x] Stap 2c – Medewerkers (30 fictieve medewerkers)
 - [x] Stap 2d – Planning
-- [ ] Stap 2e – Dashboard met echte tellers
+- [x] Stap 2e – Dashboard met echte tellers
+- [ ] Fase 3 – Werkopdrachten en WhatsApp
 
 Tijdens het bouwen worden gegevens alleen lokaal in de browser opgeslagen en gebruiken we
 uitsluitend fictieve gegevens.
