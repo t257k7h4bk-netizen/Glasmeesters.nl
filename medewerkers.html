@@ -13,13 +13,345 @@
 <body data-pagina="medewerkers">
 
   <main class="inhoud">
-    <h1>Medewerkers</h1>
-    <p class="ondertitel">Personeelsgegevens, opleidingen en bevoegdheden.</p>
-    <div class="binnenkort">
-      Dit onderdeel bouwen we in <strong>stap 2c</strong>.
+    <div class="paginakop">
+      <div>
+        <h1>Medewerkers</h1>
+        <p class="ondertitel" id="samenvatting">Bezig met laden…</p>
+      </div>
+      <button class="knop alleen-beheerder" id="nieuw">+ Nieuwe medewerker</button>
     </div>
+
+    <div class="melding info zichtbaar" id="voorbeeld-melding" hidden>
+      Dit zijn <strong>verzonnen voorbeeldmedewerkers</strong> om mee te testen. Namen en telefoonnummers zijn fictief.
+    </div>
+
+    <div class="filterbalk">
+      <input type="search" id="zoek" placeholder="Zoek op naam, functie of telefoon…" aria-label="Zoeken">
+      <select id="groep" aria-label="Groep">
+        <option value="">Iedereen</option>
+        <option value="kantoor">Kantoor</option>
+        <option value="opname">Opnemers</option>
+        <option value="buitendienst">Buitendienst</option>
+      </select>
+      <label class="vinkje"><input type="checkbox" id="inactief"> Toon ook niet-actief</label>
+    </div>
+
+    <div class="personen" id="lijst"></div>
   </main>
 
+  <!-- Detailkaart van één medewerker -->
+  <dialog id="detail" class="venster">
+    <form id="formulier" method="dialog">
+      <div class="venster-kop">
+        <h2 id="venster-titel">Medewerker</h2>
+        <button type="button" class="sluit" id="sluit" aria-label="Sluiten">✕</button>
+      </div>
+
+      <div class="venster-inhoud">
+        <div class="foto-blok">
+          <div class="avatar groot" id="foto-voorbeeld"></div>
+          <div class="alleen-beheerder">
+            <label class="knop tweede klein" for="foto-bestand">Foto kiezen</label>
+            <input type="file" id="foto-bestand" accept="image/*" hidden>
+            <button type="button" class="knop tweede klein" id="foto-weg">Foto verwijderen</button>
+          </div>
+        </div>
+
+        <div class="velden-2">
+          <div class="veld"><label for="voornaam">Voornaam</label><input id="voornaam" required></div>
+          <div class="veld"><label for="achternaam">Achternaam</label><input id="achternaam" required></div>
+          <div class="veld"><label for="functie">Functie</label><select id="functie"></select></div>
+          <div class="veld recht-telefoon"><label for="telefoon">Telefoon (voor WhatsApp)</label><input id="telefoon" type="tel" inputmode="tel"></div>
+          <div class="veld alleen-beheerder"><label for="email">E-mail</label><input id="email" type="email"></div>
+          <div class="veld alleen-beheerder"><label for="in-dienst">In dienst sinds</label><input id="in-dienst" type="date"></div>
+          <div class="veld alleen-beheerder"><label for="rol-programma">Rol in het programma</label><select id="rol-programma"></select></div>
+          <div class="veld alleen-beheerder"><label class="vinkje"><input type="checkbox" id="actief"> Actief (kan ingepland worden)</label></div>
+        </div>
+        <div class="veld alleen-beheerder">
+          <label for="bijzonderheden">Bijzonderheden</label>
+          <textarea id="bijzonderheden" rows="3"></textarea>
+        </div>
+
+        <div class="recht-bevoegdheden">
+          <h3>Opleidingen en bevoegdheden</h3>
+          <p class="uitleg">Aanpassen kan vanaf fase 4. Rood = verlopen, oranje = verloopt binnen 30 dagen.</p>
+          <ul class="bevoegdheden" id="bevoegdheden"></ul>
+        </div>
+
+        <div class="melding" id="melding-detail"></div>
+      </div>
+
+      <div class="venster-voet alleen-beheerder">
+        <button type="button" class="knop gevaar" id="verwijder">Verwijderen</button>
+        <span class="ruimte"></span>
+        <button type="button" class="knop tweede" id="annuleer">Annuleren</button>
+        <button type="submit" class="knop" id="opslaan">Opslaan</button>
+      </div>
+    </form>
+  </dialog>
+
   <script src="js/layout.js"></script>
+  <script src="js/opslag.js"></script>
+  <script src="js/keuzelijsten.js"></script>
+  <script src="js/voorbeeld.js"></script>
+  <script>
+  if (!document.body.classList.contains("geen-toegang")) {
+
+    const rol = huidigeRol();
+    const magBewerken = rol === "beheerder";
+    let medewerkers = [];
+    let huidige = null;       // de medewerker die open staat
+    let nieuweFoto = null;    // undefined = ongewijzigd, "" = verwijderd
+
+    // Onderdelen verbergen die deze rol niet mag zien
+    if (!magBewerken) document.body.classList.add("alleen-lezen");
+    if (rol === "opnemer") document.body.classList.add("verberg-telefoon", "verberg-bevoegdheden");
+
+    // Tekst veilig in HTML zetten (voorkomt dat ingevoerde tekst code wordt)
+    function esc(t) {
+      return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    }
+
+    function volledigeNaam(m) { return (m.voornaam + " " + m.achternaam).trim(); }
+    function initialen(m) {
+      const delen = volledigeNaam(m).split(" ").filter(Boolean);
+      return ((delen[0] || "")[0] + (delen.length > 1 ? delen[delen.length - 1][0] : "")).toUpperCase();
+    }
+    function avatar(m, groot) {
+      return m.foto
+        ? '<div class="avatar' + (groot ? " groot" : "") + '" style="background-image:url(' + m.foto + ')"></div>'
+        : '<div class="avatar' + (groot ? " groot" : "") + ' g-' + groepVanFunctie(m.functie) + '">' + esc(initialen(m)) + '</div>';
+    }
+
+    // Slechtste status van alle certificaten van een medewerker
+    function certificaatStatus(m) {
+      let status = "geldig";
+      (m.bevoegdheden || []).forEach(function (b) {
+        const s = statusBevoegdheid(b);
+        if (s === "verlopen") status = "verlopen";
+        else if (s === "bijna" && status !== "verlopen") status = "bijna";
+      });
+      return status;
+    }
+
+    // Welke bevoegdheden mag deze rol zien?
+    function zichtbareBevoegdheden(m) {
+      const lijst = (m.bevoegdheden || []).filter(function (b) { return b.behaald; });
+      if (rol === "wagenpark") return lijst.filter(function (b) { return b.code.indexOf("rijbewijs") === 0; });
+      return lijst;
+    }
+
+    // ----- Lijst tonen -----
+    function toonLijst() {
+      const zoek = document.getElementById("zoek").value.trim().toLowerCase();
+      const groep = document.getElementById("groep").value;
+      const ookInactief = document.getElementById("inactief").checked;
+
+      const gefilterd = medewerkers
+        .filter(function (m) { return ookInactief || m.actief; })
+        .filter(function (m) { return !groep || groepVanFunctie(m.functie) === groep; })
+        .filter(function (m) {
+          if (!zoek) return true;
+          return (volledigeNaam(m) + " " + m.functie + " " + (m.telefoon || "")).toLowerCase().indexOf(zoek) !== -1;
+        })
+        .sort(function (a, b) {
+          const volgorde = { kantoor: 0, opname: 1, buitendienst: 2 };
+          return volgorde[groepVanFunctie(a.functie)] - volgorde[groepVanFunctie(b.functie)] ||
+                 a.voornaam.localeCompare(b.voornaam, "nl");
+        });
+
+      const lijst = document.getElementById("lijst");
+      if (gefilterd.length === 0) {
+        lijst.innerHTML = '<div class="binnenkort">Geen medewerkers gevonden.</div>';
+        return;
+      }
+
+      lijst.innerHTML = gefilterd.map(function (m) {
+        const cs = certificaatStatus(m);
+        const waarschuwing = rol === "opnemer" ? "" :
+          cs === "verlopen" ? '<span class="label rood">Certificaat verlopen</span>' :
+          cs === "bijna" ? '<span class="label oranje">Certificaat verloopt binnenkort</span>' : "";
+        const rijbewijzen = zichtbareBevoegdheden(m)
+          .filter(function (b) { return b.code.indexOf("rijbewijs") === 0; })
+          .map(function (b) { return b.code.replace("rijbewijs_", "").toUpperCase(); }).join(" · ");
+        return '<button class="persoon' + (m.actief ? "" : " inactief") + '" data-id="' + m.id + '">' +
+                 avatar(m) +
+                 '<span class="persoon-tekst">' +
+                   '<strong>' + esc(volledigeNaam(m)) + '</strong>' +
+                   '<span>' + esc(m.functie) + (m.actief ? "" : " · niet actief") + '</span>' +
+                   (rol !== "opnemer" && m.telefoon ? '<span class="zacht">' + esc(m.telefoon) + '</span>' : "") +
+                   (rol !== "opnemer" ? '<span class="zacht">Rijbewijs: ' + (rijbewijzen || "geen") + '</span>' : "") +
+                   waarschuwing +
+                 '</span>' +
+               '</button>';
+      }).join("");
+    }
+
+    function toonSamenvatting() {
+      const actief = medewerkers.filter(function (m) { return m.actief; });
+      const tel = { kantoor: 0, opname: 0, buitendienst: 0 };
+      actief.forEach(function (m) { tel[groepVanFunctie(m.functie)]++; });
+      document.getElementById("samenvatting").textContent =
+        actief.length + " actieve medewerkers · " + tel.kantoor + " kantoor · " +
+        tel.opname + " opnemers · " + tel.buitendienst + " buitendienst";
+      document.getElementById("voorbeeld-melding").hidden =
+        !medewerkers.some(function (m) { return m.voorbeeld; });
+    }
+
+    async function laad() {
+      await Voorbeeld.zorgVoorMedewerkers();
+      medewerkers = await Opslag.alle("medewerkers");
+      toonSamenvatting();
+      toonLijst();
+    }
+
+    // ----- Detailkaart -----
+    const venster = document.getElementById("detail");
+
+    document.getElementById("functie").innerHTML =
+      FUNCTIES.map(function (f) { return '<option>' + f.naam + '</option>'; }).join("");
+    document.getElementById("rol-programma").innerHTML =
+      Object.keys(ROL_IN_PROGRAMMA).map(function (r) {
+        return '<option value="' + r + '">' + ROL_IN_PROGRAMMA[r] + '</option>';
+      }).join("");
+
+    function zetFotoVoorbeeld(foto, m) {
+      const el = document.getElementById("foto-voorbeeld");
+      if (foto) {
+        el.style.backgroundImage = "url(" + foto + ")";
+        el.textContent = "";
+        el.className = "avatar groot";
+      } else {
+        el.style.backgroundImage = "";
+        el.textContent = m ? initialen(m) : "?";
+        el.className = "avatar groot g-" + groepVanFunctie(m ? m.functie : "");
+      }
+    }
+
+    function openDetail(m) {
+      huidige = m;
+      nieuweFoto = undefined;
+      const leeg = !m;
+      const g = m || { voornaam: "", achternaam: "", functie: "Glaszetter", rol: "medewerker",
+                       telefoon: "", email: "", in_dienst_sinds: new Date().toISOString().slice(0, 10),
+                       actief: true, bijzonderheden: "", foto: "", bevoegdheden: [] };
+
+      document.getElementById("venster-titel").textContent = leeg ? "Nieuwe medewerker" : volledigeNaam(g);
+      document.getElementById("voornaam").value = g.voornaam;
+      document.getElementById("achternaam").value = g.achternaam;
+      document.getElementById("functie").value = g.functie;
+      document.getElementById("telefoon").value = g.telefoon || "";
+      document.getElementById("email").value = g.email || "";
+      document.getElementById("in-dienst").value = g.in_dienst_sinds || "";
+      document.getElementById("rol-programma").value = g.rol || "medewerker";
+      document.getElementById("actief").checked = g.actief !== false;
+      document.getElementById("bijzonderheden").value = g.bijzonderheden || "";
+      zetFotoVoorbeeld(g.foto, leeg ? null : g);
+      document.getElementById("verwijder").hidden = leeg;
+      document.getElementById("melding-detail").className = "melding";
+
+      const items = zichtbareBevoegdheden(g);
+      document.getElementById("bevoegdheden").innerHTML = items.length
+        ? items.map(function (b) {
+            const s = statusBevoegdheid(b);
+            const tot = b.geldig_tot
+              ? "geldig tot " + new Date(b.geldig_tot + "T00:00:00").toLocaleDateString("nl-NL")
+              : "geen vervaldatum";
+            return '<li class="b-' + s + '"><span class="stip ' +
+                   (s === "verlopen" ? "rood" : s === "bijna" ? "oranje" : "groen") + '"></span>' +
+                   '<span>' + esc(bevoegdheidNaam(b.code)) + '</span><span class="zacht">' + tot +
+                   (s === "verlopen" ? " – VERLOPEN" : "") + '</span></li>';
+          }).join("")
+        : '<li class="zacht">Nog geen opleidingen of bevoegdheden ingevuld.</li>';
+
+      venster.querySelectorAll("input, select, textarea").forEach(function (el) {
+        if (el.type !== "file") el.disabled = !magBewerken;
+      });
+      venster.showModal();
+    }
+
+    function sluitDetail() { venster.close(); }
+
+    document.getElementById("lijst").addEventListener("click", function (e) {
+      const knop = e.target.closest(".persoon");
+      if (!knop) return;
+      openDetail(medewerkers.find(function (m) { return m.id === knop.dataset.id; }));
+    });
+    document.getElementById("nieuw").addEventListener("click", function () { openDetail(null); });
+    document.getElementById("sluit").addEventListener("click", sluitDetail);
+    document.getElementById("annuleer").addEventListener("click", sluitDetail);
+    venster.addEventListener("click", function (e) { if (e.target === venster) sluitDetail(); });
+
+    // Foto kiezen: verkleinen tot max. 320 pixels zodat de opslag klein blijft
+    document.getElementById("foto-bestand").addEventListener("change", function (e) {
+      const bestand = e.target.files[0];
+      e.target.value = "";
+      if (!bestand) return;
+      const img = new Image();
+      img.onload = function () {
+        const max = 320;
+        const schaal = Math.min(1, max / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * schaal);
+        canvas.height = Math.round(img.height * schaal);
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        nieuweFoto = canvas.toDataURL("image/jpeg", 0.8);
+        zetFotoVoorbeeld(nieuweFoto);
+        URL.revokeObjectURL(img.src);
+      };
+      img.src = URL.createObjectURL(bestand);
+    });
+    document.getElementById("foto-weg").addEventListener("click", function () {
+      nieuweFoto = "";
+      zetFotoVoorbeeld("", huidige || { voornaam: "?", achternaam: "", functie: document.getElementById("functie").value });
+    });
+
+    // Opslaan
+    document.getElementById("formulier").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      if (!magBewerken) return;
+      const voornaam = document.getElementById("voornaam").value.trim();
+      const achternaam = document.getElementById("achternaam").value.trim();
+      if (!voornaam || !achternaam) {
+        const el = document.getElementById("melding-detail");
+        el.className = "melding zichtbaar fout";
+        el.textContent = "Vul een voornaam en achternaam in.";
+        return;
+      }
+      const m = Object.assign({}, huidige || { bevoegdheden: [] }, {
+        voornaam: voornaam,
+        achternaam: achternaam,
+        functie: document.getElementById("functie").value,
+        telefoon: document.getElementById("telefoon").value.trim(),
+        email: document.getElementById("email").value.trim(),
+        in_dienst_sinds: document.getElementById("in-dienst").value,
+        rol: document.getElementById("rol-programma").value,
+        actief: document.getElementById("actief").checked,
+        bijzonderheden: document.getElementById("bijzonderheden").value.trim()
+      });
+      if (nieuweFoto !== undefined) m.foto = nieuweFoto;
+      await Opslag.bewaar("medewerkers", m);
+      sluitDetail();
+      await laad();
+    });
+
+    // Verwijderen
+    document.getElementById("verwijder").addEventListener("click", async function () {
+      if (!huidige) return;
+      if (!confirm(volledigeNaam(huidige) + " definitief verwijderen?\n\nTip: zet iemand liever op 'niet actief', dan blijft de geschiedenis bewaard.")) return;
+      await Opslag.verwijder("medewerkers", huidige.id);
+      sluitDetail();
+      await laad();
+    });
+
+    document.getElementById("zoek").addEventListener("input", toonLijst);
+    document.getElementById("groep").addEventListener("change", toonLijst);
+    document.getElementById("inactief").addEventListener("change", toonLijst);
+
+    laad();
+  }
+  </script>
 </body>
 </html>

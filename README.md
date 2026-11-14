@@ -12,6 +12,9 @@ glasopnames, voertuigen en gereedschap in één programma.
 | `css/stijl.css` | Huisstijl en opmaak. Kleuren staan bovenaan op één plek |
 | `js/layout.js` | Het menu dat op elke pagina verschijnt, plus welke rol wat mag zien |
 | `js/opslag.js` | Alle opslag loopt via dit bestand (nu lokaal, later Supabase) |
+| `js/keuzelijsten.js` | Vaste lijsten: functies, opleidingen en bevoegdheden |
+| `js/voorbeeld.js` | De 30 verzonnen voorbeeldmedewerkers |
+| `medewerkers.html` | Medewerkerslijst met zoeken, filteren en detailkaart |
 | `beheer.html` | Instellingen (dagdelen), back-up downloaden/terugzetten, alles wissen |
 | `img/` | Pictogrammen voor het beginscherm van tablet en telefoon |
 | `manifest.webmanifest` | Zorgt dat het programma als app op het beginscherm kan |
@@ -21,7 +24,7 @@ glasopnames, voertuigen en gereedschap in één programma.
 - [x] Fase 1 – Ontwerp
 - [x] Stap 2a – Basis: menu, huisstijl, startscherm
 - [x] Stap 2b – Rollen nagespeeld, lokale opslag, back-upknoppen
-- [ ] Stap 2c – Medewerkers (30 fictieve medewerkers)
+- [x] Stap 2c – Medewerkers (30 fictieve medewerkers)
 - [ ] Stap 2d – Planning
 - [ ] Stap 2e – Dashboard met echte tellers
 

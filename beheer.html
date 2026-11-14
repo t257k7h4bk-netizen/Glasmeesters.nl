@@ -68,6 +68,7 @@
           <tbody id="tellingen"><tr><td colspan="2">Bezig met laden…</td></tr></tbody>
         </table>
         <div class="knoppen">
+          <button class="knop tweede" id="voorbeeld">Voorbeeldmedewerkers opnieuw zetten</button>
           <button class="knop gevaar" id="wissen">Alle gegevens wissen</button>
         </div>
         <div class="melding" id="melding-wissen"></div>
@@ -78,6 +79,8 @@
 
   <script src="js/layout.js"></script>
   <script src="js/opslag.js"></script>
+  <script src="js/keuzelijsten.js"></script>
+  <script src="js/voorbeeld.js"></script>
   <script>
   // Alleen uitvoeren als deze rol de pagina mag zien
   if (!document.body.classList.contains("geen-toegang")) {
@@ -88,7 +91,7 @@
       middag_van: "12:30",  middag_tot: "16:30"
     };
 
-    const NAMEN = { instellingen: "Instellingen" }; // wordt aangevuld in latere stappen
+    const NAMEN = { instellingen: "Instellingen", medewerkers: "Medewerkers" }; // wordt aangevuld in latere stappen
 
     function toon(id, soort, tekst) {
       const el = document.getElementById(id);
@@ -176,8 +179,16 @@
     document.getElementById("wissen").addEventListener("click", async function () {
       if (!confirm("Weet je zeker dat je ALLE gegevens op dit apparaat wilt wissen? Maak eerst een back-up.")) return;
       await Opslag.wisAlles();
-      toon("melding-wissen", "info", "Alle gegevens zijn gewist. De dagdelen staan weer op de standaardtijden.");
+      toon("melding-wissen", "info", "Alle gegevens zijn gewist. De dagdelen staan weer op de standaardtijden. De voorbeeldmedewerkers komen terug zodra je Medewerkers opent.");
       laadDagdelen();
+      laadTellingen();
+    });
+
+    // ----- Voorbeeldmedewerkers opnieuw -----
+    document.getElementById("voorbeeld").addEventListener("click", async function () {
+      if (!confirm("De 30 voorbeeldmedewerkers worden teruggezet zoals ze oorspronkelijk waren. Wijzigingen aan voorbeeldmedewerkers gaan verloren; zelf toegevoegde medewerkers blijven staan. Doorgaan?")) return;
+      await Voorbeeld.herstelMedewerkers();
+      toon("melding-wissen", "goed", "De 30 voorbeeldmedewerkers staan er weer.");
       laadTellingen();
     });
 

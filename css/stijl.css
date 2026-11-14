@@ -209,6 +209,104 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--goud); bord
 .tabel td, .tabel th { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--lijn); }
 .tabel th { color: var(--tekst-zacht); font-weight: 600; }
 
+/* ---------- Paginakop en filters ---------- */
+
+.paginakop { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.filterbalk { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 16px 0 18px; }
+.filterbalk input[type=search] { flex: 1 1 260px; }
+.vinkje { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; cursor: pointer; }
+.vinkje input { width: 20px; height: 20px; padding: 0; }
+.veld label.vinkje { display: inline-flex; font-weight: 600; margin-top: 30px; }
+.zacht { color: var(--tekst-zacht); font-size: 14px; }
+.knop.klein { padding: 7px 12px; font-size: 14px; }
+
+/* ---------- Medewerkers ---------- */
+
+.personen { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+
+.persoon {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  text-align: left;
+  background: var(--wit);
+  border: 1px solid var(--lijn);
+  border-radius: var(--rand);
+  padding: 14px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.persoon:hover { border-color: var(--blauw); }
+.persoon.inactief { opacity: 0.55; }
+.persoon-tekst { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.persoon-tekst strong { font-size: 16px; }
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--wit);
+  background: var(--blauw) center / cover no-repeat;
+}
+.avatar.groot { width: 88px; height: 88px; font-size: 28px; }
+.avatar.g-kantoor { background-color: var(--blauw); }
+.avatar.g-opname { background-color: #5B7F9E; }
+.avatar.g-buitendienst { background-color: var(--goud-donker); }
+
+.label {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  margin-top: 6px;
+  align-self: flex-start;
+}
+.label.rood { background: #FBEDEB; color: var(--rood); }
+.label.oranje { background: #FDF1E2; color: #9A5A0C; }
+.label.groen { background: #E7F4EC; color: var(--groen); }
+
+.alleen-lezen .alleen-beheerder { display: none !important; }
+.verberg-telefoon .recht-telefoon { display: none; }
+.verberg-bevoegdheden .recht-bevoegdheden { display: none; }
+
+/* ---------- Venster (detailkaart) ---------- */
+
+.venster {
+  border: none;
+  border-radius: 14px;
+  padding: 0;
+  width: min(720px, 94vw);
+  max-height: 90vh;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+.venster::backdrop { background: rgba(20, 35, 50, 0.45); }
+.venster form { display: flex; flex-direction: column; max-height: 90vh; }
+.venster-kop { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-bottom: 1px solid var(--lijn); }
+.venster-kop h2 { margin: 0; }
+.venster-inhoud { padding: 20px 22px; overflow-y: auto; }
+.venster-voet { display: flex; gap: 10px; padding: 14px 22px; border-top: 1px solid var(--lijn); flex-wrap: wrap; }
+.venster-voet .ruimte { flex: 1; }
+.sluit { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--tekst-zacht); padding: 4px 8px; }
+
+.foto-blok { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
+.foto-blok > div:last-child { display: flex; gap: 8px; flex-wrap: wrap; }
+.velden-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+.velden-2 input, .velden-2 select, .venster textarea { width: 100%; }
+.venster h3 { font-size: 16px; margin: 18px 0 4px; color: var(--blauw-donker); }
+input:disabled, select:disabled, textarea:disabled { background: var(--achtergrond); color: var(--tekst); opacity: 1; }
+
+.bevoegdheden { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; }
+.bevoegdheden li { display: flex; align-items: center; gap: 8px; font-size: 15px; flex-wrap: wrap; }
+.bevoegdheden li .zacht { font-size: 13px; width: 100%; padding-left: 18px; margin-top: -2px; }
+.bevoegdheden li.b-verlopen > span:nth-child(2) { color: var(--rood); font-weight: 600; }
+
 /* ---------- Telefoon: menu onderaan ---------- */
 
 @media (max-width: 760px) {
@@ -232,6 +330,11 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--goud); bord
   }
   .rolbalk select { padding: 4px 8px; }
   .kaarten { grid-template-columns: 1fr; }
+  .personen { grid-template-columns: 1fr; }
+  .velden-2, .bevoegdheden { grid-template-columns: 1fr; }
+  .venster { width: 100vw; max-width: 100vw; max-height: 100vh; height: 100%; border-radius: 0; margin: 0; }
+  .venster form { max-height: 100vh; height: 100%; }
+  .venster-inhoud { flex: 1; }
   .menu nav { display: flex; width: 100%; overflow-x: auto; }
   .menu nav a {
     flex-direction: column;
