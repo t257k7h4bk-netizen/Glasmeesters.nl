@@ -501,6 +501,7 @@
   // Na opslaan in het werkopdrachtvenster: opnieuw tekenen en naar de juiste dag/week springen
   Werkopdracht.instellen({
     magBewerken: magPlannen,
+    magFotos: magPlannen || rol === "medewerker",
     toast: function (t, s, o) { toast(t, s, o); },
     naOpslaan: async function (opdracht) {
       await herlaad();

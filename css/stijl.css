@@ -359,6 +359,21 @@ input:disabled, select:disabled, textarea:disabled { background: var(--achtergro
 
 /* ---------- Gedeelde onderdelen: werkopdrachtvenster en meldingen ---------- */
 
+.bestand-knoppen { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+.bestanden { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-bottom: 8px; }
+.bestand { position: relative; display: flex; flex-direction: column; gap: 3px; font-size: 13px; min-width: 0; }
+.bestand-open { padding: 0; border: 1px solid var(--lijn); border-radius: 8px; background: var(--achtergrond); aspect-ratio: 4 / 3; overflow: hidden; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.bestand-open img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.doc-icoon { font-size: 30px; display: flex; flex-direction: column; align-items: center; }
+.doc-icoon b { font-size: 12px; color: var(--blauw); }
+.bestand-naam { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bestand-weg { position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; border-radius: 50%; border: none; background: rgba(255,255,255,0.92); color: var(--rood); cursor: pointer; font-size: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+.kijker { border: none; padding: 0; background: transparent; max-width: 96vw; max-height: 96vh; }
+.kijker::backdrop { background: rgba(0, 0, 0, 0.85); }
+.kijker img { max-width: 96vw; max-height: 88vh; display: block; border-radius: 6px; }
+.kijker-naam { color: #fff; text-align: center; padding: 8px; font-size: 14px; }
+.kijker-sluit { position: fixed; top: 12px; right: 16px; color: #fff; font-size: 28px; }
+
 .materialen { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
 .materiaal { display: grid; grid-template-columns: 90px 100px 1fr 40px; gap: 6px; }
 .materiaal input { width: 100%; min-width: 0; }

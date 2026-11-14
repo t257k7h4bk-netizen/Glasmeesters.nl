@@ -83,6 +83,15 @@ const Opslag = (function () {
     });
   }
 
+  function blobNaarTekst(blob) {
+    return new Promise(function (klaar, fout) {
+      const lezer = new FileReader();
+      lezer.onload = function () { klaar(lezer.result); };
+      lezer.onerror = function () { fout(lezer.error); };
+      lezer.readAsDataURL(blob);
+    });
+  }
+
   function nieuwId() {
     if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
     return Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -100,6 +109,8 @@ const Opslag = (function () {
   }
 
   return {
+    nieuwId: nieuwId,
+
     // Alle items van één soort, bijvoorbeeld "medewerkers"
     alle: function (soort) {
       return handeling("readonly", async function (tabel, zet) {
@@ -146,35 +157,48 @@ const Opslag = (function () {
       });
     },
 
-    // Alles als één back-upobject
-    exporteer: function () {
-      return handeling("readonly", async function (tabel, zet) {
-        const rijen = await verzoekNaarBelofte(tabel.getAll());
-        const gegevens = {};
-        rijen.forEach(function (r) {
-          (gegevens[r._soort] = gegevens[r._soort] || []).push(zonderSleutel(r));
-        });
-        zet({
-          programma: "Glasmeesters Planner",
-          formaat: 1,
-          gemaakt_op: new Date().toISOString(),
-          gegevens: gegevens
-        });
+    // Alles als één back-upobject (foto's en documenten worden als tekst meegenomen)
+    exporteer: async function () {
+      const rijen = await handeling("readonly", async function (tabel, zet) {
+        zet(await verzoekNaarBelofte(tabel.getAll()));
       });
+      const gegevens = {};
+      for (const r of rijen) {
+        const item = zonderSleutel(r);
+        for (const veld of Object.keys(item)) {
+          if (item[veld] instanceof Blob) item[veld] = { __bestand: await blobNaarTekst(item[veld]) };
+        }
+        (gegevens[r._soort] = gegevens[r._soort] || []).push(item);
+      }
+      return {
+        programma: "Glasmeesters Planner",
+        formaat: 1,
+        gemaakt_op: new Date().toISOString(),
+        gegevens: gegevens
+      };
     },
 
     // Back-up terugzetten: vervangt ALLE huidige gegevens
-    importeer: function (backup) {
+    importeer: async function (backup) {
       if (!backup || backup.programma !== "Glasmeesters Planner" || !backup.gegevens) {
-        return Promise.reject(new Error("Dit is geen back-up van de Glasmeesters Planner."));
+        throw new Error("Dit is geen back-up van de Glasmeesters Planner.");
+      }
+      // Eerst bestanden terug omzetten (dat kan niet binnen de database-handeling)
+      const rijen = [];
+      for (const soort of Object.keys(backup.gegevens)) {
+        for (const origineel of backup.gegevens[soort]) {
+          const item = Object.assign({}, origineel);
+          for (const veld of Object.keys(item)) {
+            if (item[veld] && typeof item[veld] === "object" && item[veld].__bestand) {
+              item[veld] = await (await fetch(item[veld].__bestand)).blob();
+            }
+          }
+          rijen.push(metSleutel(soort, item));
+        }
       }
       return handeling("readwrite", function (tabel) {
         tabel.clear();
-        Object.keys(backup.gegevens).forEach(function (soort) {
-          backup.gegevens[soort].forEach(function (item) {
-            tabel.put(metSleutel(soort, item));
-          });
-        });
+        rijen.forEach(function (r) { tabel.put(r); });
       });
     },
 

@@ -135,6 +135,7 @@
                  '</span>' +
                  '<span class="opdracht-rechts">' +
                    '<span class="' + (o.datum ? "" : "oranje-tekst") + '">' + esc(datumTekst(o)) + '</span>' +
+                   (o.aantal_bestanden ? '<span class="zacht">📎 ' + o.aantal_bestanden + (o.aantal_bestanden === 1 ? " bestand" : " bestanden") + '</span>' : "") +
                    '<span class="zacht">' + (o.datum ? ((o.medewerkers || []).length ? esc(voornamen(o.medewerkers)) : '<span class="rood-tekst">nog niemand</span>') : "") + '</span>' +
                  '</span>' +
                '</button>';
@@ -154,7 +155,7 @@
       toon();
     }
 
-    Werkopdracht.instellen({ magBewerken: magBewerken, toast: toast, naOpslaan: laad });
+    Werkopdracht.instellen({ magBewerken: magBewerken, magFotos: magBewerken || rol === "medewerker", toast: toast, naOpslaan: laad });
 
     document.getElementById("lijst").addEventListener("click", function (e) {
       const k = e.target.closest(".opdracht");

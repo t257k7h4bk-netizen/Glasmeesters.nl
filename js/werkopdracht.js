@@ -17,6 +17,7 @@ const Werkopdracht = (function () {
     medewerkers: [], klussen: [], afwezigheid: [], voertuigen: [], gereedschap: [],
     dagdelen: { ochtend_van: "07:30", ochtend_tot: "12:00", middag_van: "12:30", middag_tot: "16:30" },
     magBewerken: false,
+    magFotos: false,     // foto's toevoegen mag ook de medewerker (bij zijn eigen opdracht)
     naOpslaan: null,     // functie(opdracht) die de pagina na opslaan/verwijderen uitvoert
     toast: null          // functie(tekst, soort, ongedaan)
   };
@@ -26,6 +27,13 @@ const Werkopdracht = (function () {
   let gekozenGereedschap = [];    // gekozen gereedschap-id's
   let materialen = [];            // [{ omschrijving, aantal, eenheid }]
   let waarschuwingGezien = "";    // na "Toch opslaan" niet opnieuw vragen
+  let opdrachtId = null;          // id van de open opdracht (bij een nieuwe alvast gemaakt)
+  let isNieuw = false, isOpgeslagen = false;
+  let bestanden = [];             // bestanden van deze opdracht
+  let urls = [];                  // tijdelijke adressen voor miniaturen
+
+  const MAX_DOCUMENT = 10 * 1024 * 1024;   // 10 MB
+  const MAX_FOTO_PIXELS = 1600;            // foto's worden verkleind tot max. 1600 pixels
   let klaarGezet = false;
 
   // ---------- Hulpfuncties ----------
@@ -216,7 +224,16 @@ const Werkopdracht = (function () {
             '<div class="materialen" id="wo-materialen"></div>' +
             '<div class="snelknoppen wo-bewerk-blok" id="wo-snel"></div>' +
           '</div>' +
-          '<p class="zacht">Foto\'s en documenten volgen in stap 3c; WhatsApp in 3d. Rijbewijs-controles bij voertuig en aanhanger volgen in fase 4.</p>' +
+          '<h3 class="sectie">Foto\'s en documenten</h3>' +
+          '<div class="bestand-knoppen" id="wo-bestand-knoppen">' +
+            '<label class="knop tweede klein" for="wo-foto">📷 Foto maken of kiezen</label>' +
+            '<input type="file" id="wo-foto" accept="image/*" multiple hidden>' +
+            '<label class="knop tweede klein wo-alleen-bewerk" for="wo-document">📄 Document toevoegen</label>' +
+            '<input type="file" id="wo-document" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,image/*" multiple hidden>' +
+            '<span class="zacht" id="wo-bezig"></span>' +
+          '</div>' +
+          '<div class="bestanden" id="wo-bestanden"></div>' +
+          '<p class="zacht">WhatsApp volgt in stap 3d. Rijbewijs-controles bij voertuig en aanhanger volgen in fase 4.</p>' +
           '<div class="melding" id="wo-melding"></div>' +
         '</div>' +
         '<div class="venster-voet wo-bewerk">' +
@@ -285,6 +302,32 @@ const Werkopdracht = (function () {
       leesMaterialen();
       materialen.splice(Number(k.dataset.weg), 1);
       tekenMaterialen();
+    });
+
+    $("wo-foto").addEventListener("change", function (e) { voegToe(e.target.files, "foto"); e.target.value = ""; });
+    $("wo-document").addEventListener("change", function (e) { voegToe(e.target.files, "document"); e.target.value = ""; });
+    $("wo-bestanden").addEventListener("click", function (e) {
+      const weg = e.target.closest("[data-bestand-weg]");
+      if (weg) { verwijderBestand(weg.dataset.bestandWeg); return; }
+      const open = e.target.closest("[data-bestand]");
+      if (open) bekijk(open.dataset.bestand);
+    });
+
+    // Groot bekijken van een foto
+    const kijker = document.createElement("dialog");
+    kijker.id = "wo-kijker";
+    kijker.className = "kijker";
+    kijker.innerHTML = '<button type="button" class="sluit kijker-sluit" aria-label="Sluiten">✕</button><img id="wo-kijker-img" alt=""><div class="kijker-naam" id="wo-kijker-naam"></div>';
+    document.body.appendChild(kijker);
+    kijker.addEventListener("click", function () { kijker.close(); });
+
+    // Venster dicht: een nieuwe, niet-opgeslagen opdracht ruimt zijn bestanden op
+    venster.addEventListener("close", async function () {
+      urls.forEach(function (u) { URL.revokeObjectURL(u); });
+      urls = [];
+      if (isNieuw && !isOpgeslagen) {
+        for (const b of bestanden) await Opslag.verwijder("bestanden", b.id);
+      }
     });
 
     $("wo-form").addEventListener("submit", opslaan);
@@ -401,6 +444,121 @@ const Werkopdracht = (function () {
     }
   }
 
+  // ---------- Foto's en documenten ----------
+  function grootte(bytes) {
+    return bytes > 1048576 ? (bytes / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(bytes / 1024)) + " kB";
+  }
+
+  async function laadBestanden() {
+    bestanden = (await Opslag.alle("bestanden"))
+      .filter(function (b) { return b.opdracht === opdrachtId; })
+      .sort(function (a, b) { return (a.aangemaakt_op || "").localeCompare(b.aangemaakt_op || ""); });
+    tekenBestanden();
+  }
+
+  function tekenBestanden() {
+    urls.forEach(function (u) { URL.revokeObjectURL(u); });
+    urls = [];
+    $("wo-bestanden").innerHTML = bestanden.length ? bestanden.map(function (b) {
+      let voorbeeld;
+      if (b.type && b.type.indexOf("image/") === 0) {
+        const u = URL.createObjectURL(b.data); urls.push(u);
+        voorbeeld = '<img src="' + u + '" alt="">';
+      } else {
+        const ext = (b.naam.split(".").pop() || "").toUpperCase().slice(0, 4);
+        voorbeeld = '<span class="doc-icoon">📄<b>' + esc(ext) + '</b></span>';
+      }
+      return '<div class="bestand">' +
+               '<button type="button" class="bestand-open" data-bestand="' + b.id + '">' + voorbeeld + '</button>' +
+               '<span class="bestand-naam" title="' + esc(b.naam) + '">' + esc(b.naam) + '</span>' +
+               '<span class="zacht">' + grootte(b.grootte || 0) + '</span>' +
+               (ctx.magBewerken ? '<button type="button" class="bestand-weg" data-bestand-weg="' + b.id + '" aria-label="Verwijderen">✕</button>' : "") +
+             '</div>';
+    }).join("") : '<p class="zacht" style="margin:4px 0">Nog geen foto\'s of documenten.</p>';
+  }
+
+  // Foto verkleinen zodat de opslag niet volloopt
+  function verklein(bestand) {
+    return new Promise(function (klaar) {
+      const img = new Image();
+      const u = URL.createObjectURL(bestand);
+      img.onload = function () {
+        const schaal = Math.min(1, MAX_FOTO_PIXELS / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * schaal);
+        c.height = Math.round(img.height * schaal);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(u);
+        c.toBlob(function (blob) { klaar(blob || bestand); }, "image/jpeg", 0.82);
+      };
+      img.onerror = function () { URL.revokeObjectURL(u); klaar(bestand); }; // kan niet lezen: origineel bewaren
+      img.src = u;
+    });
+  }
+
+  async function voegToe(lijst, soort) {
+    if (!lijst || !lijst.length) return;
+    const fouten = [];
+    $("wo-bezig").textContent = "Bezig met opslaan…";
+    for (const bestand of Array.prototype.slice.call(lijst)) {
+      const isFoto = bestand.type.indexOf("image/") === 0;
+      let data = bestand, naam = bestand.name || ("foto-" + Date.now() + ".jpg");
+      if (isFoto) {
+        data = await verklein(bestand);
+        if (data.type === "image/jpeg") naam = naam.replace(/\.[^.]+$/, "") + ".jpg";
+      } else if (bestand.size > MAX_DOCUMENT) {
+        fouten.push(naam + " is groter dan 10 MB en is niet toegevoegd.");
+        continue;
+      }
+      const b = await Opslag.bewaar("bestanden", {
+        opdracht: opdrachtId, soort: isFoto ? "foto" : "document",
+        naam: naam, type: data.type || bestand.type, grootte: data.size, data: data
+      });
+      bestanden.push(b);
+    }
+    $("wo-bezig").textContent = "";
+    tekenBestanden();
+    if (fouten.length) melding("fout", fouten.map(esc).join("<br>"));
+    await werkTellerBij();
+  }
+
+  async function verwijderBestand(id) {
+    const b = bestanden.find(function (x) { return x.id === id; });
+    if (!b || !confirm(b.naam + " verwijderen?")) return;
+    await Opslag.verwijder("bestanden", id);
+    bestanden = bestanden.filter(function (x) { return x.id !== id; });
+    tekenBestanden();
+    await werkTellerBij();
+  }
+
+  // Bij een bestaande opdracht het aantal bestanden meteen bijwerken (ook voor de medewerker)
+  async function werkTellerBij() {
+    if (isNieuw && !isOpgeslagen) return;
+    const o = await Opslag.haal("klussen", opdrachtId);
+    if (!o) return;
+    o.aantal_bestanden = bestanden.length;
+    await Opslag.bewaar("klussen", o);
+    if (huidige) huidige.aantal_bestanden = bestanden.length;
+    if (ctx.naOpslaan) await ctx.naOpslaan(null);
+  }
+
+  function bekijk(id) {
+    const b = bestanden.find(function (x) { return x.id === id; });
+    if (!b) return;
+    const u = URL.createObjectURL(b.data); urls.push(u);
+    if (b.type && b.type.indexOf("image/") === 0) {
+      $("wo-kijker-img").src = u;
+      $("wo-kijker-naam").textContent = b.naam;
+      $("wo-kijker").showModal();
+    } else {
+      // Documenten openen in een nieuw tabblad (of downloaden als de browser ze niet kan tonen)
+      const a = document.createElement("a");
+      a.href = u; a.target = "_blank"; a.rel = "noopener";
+      if (!/pdf|image|text/.test(b.type || "")) a.download = b.naam;
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+  }
+
   function melding(soort, html) {
     const el = $("wo-melding");
     el.className = "melding" + (html ? " zichtbaar " + soort : "");
@@ -424,6 +582,10 @@ const Werkopdracht = (function () {
     };
     gekozen = (o.medewerkers || []).slice();
     gekozenGereedschap = (o.gereedschap || []).slice();
+    opdrachtId = opdracht ? opdracht.id : Opslag.nieuwId();
+    isNieuw = !opdracht;
+    isOpgeslagen = false;
+    bestanden = [];
     materialen = JSON.parse(JSON.stringify(o.materialen || []));
     waarschuwingGezien = "";
 
@@ -461,6 +623,11 @@ const Werkopdracht = (function () {
     $("wo-aanhanger").value = o.aanhanger || "";
     tekenGereedschap();
     tekenMaterialen();
+    tekenBestanden();
+    laadBestanden();
+    $("wo-bestand-knoppen").hidden = !(ctx.magBewerken || ctx.magFotos);
+    document.querySelectorAll(".wo-alleen-bewerk").forEach(function (el) { el.hidden = !ctx.magBewerken; });
+    $("wo-foto").disabled = false; $("wo-document").disabled = false;
     document.querySelectorAll("#wo-voertuig, #wo-aanhanger").forEach(function (el) { el.disabled = !ctx.magBewerken; });
     $("werkopdracht").showModal();
   }
@@ -516,7 +683,10 @@ const Werkopdracht = (function () {
     }
 
     if (!o.nummer) o.nummer = await nieuwNummer();
+    if (!o.id) o.id = opdrachtId;
+    o.aantal_bestanden = bestanden.length;
     const bewaard = await Opslag.bewaar("klussen", o);
+    isOpgeslagen = true;
     $("werkopdracht").close();
     if (ctx.toast) {
       if (o.datum && !o.medewerkers.length) ctx.toast("Opdracht " + o.nummer + " opgeslagen. Let op: er is nog niemand ingepland.", "waarschuwing");
@@ -527,13 +697,17 @@ const Werkopdracht = (function () {
 
   async function verwijderen() {
     if (!huidige) return;
-    if (!confirm("Opdracht " + (huidige.nummer || "") + " (" + huidige.klant + ") verwijderen?\n\nTip: zet de status liever op Geannuleerd, dan blijft hij bewaard.")) return;
+    if (!confirm("Opdracht " + (huidige.nummer || "") + " (" + huidige.klant + ") verwijderen, inclusief foto's en documenten?\n\nTip: zet de status liever op Geannuleerd, dan blijft hij bewaard.")) return;
     const oud = huidige;
+    const oudeBestanden = bestanden.slice();
+    for (const b of oudeBestanden) await Opslag.verwijder("bestanden", b.id);
+    bestanden = [];
     await Opslag.verwijder("klussen", oud.id);
     $("werkopdracht").close();
     if (ctx.naOpslaan) await ctx.naOpslaan(null);
     if (ctx.toast) ctx.toast("Opdracht " + (oud.nummer || "") + " verwijderd.", "", async function () {
       await Opslag.bewaar("klussen", oud);
+      for (const b of oudeBestanden) await Opslag.bewaar("bestanden", b);
       if (ctx.naOpslaan) await ctx.naOpslaan(oud);
     });
   }

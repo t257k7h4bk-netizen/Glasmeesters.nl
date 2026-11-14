@@ -31,7 +31,7 @@ glasopnames, voertuigen en gereedschap in één programma.
 - [x] Stap 2e – Dashboard met echte tellers
 - [x] Stap 3a – Werkopdrachten: nummer, status, werkzaamheden, glassoort
 - [x] Stap 3b – Voertuig, materialen en gereedschap
-- [ ] Stap 3c – Foto's en documenten
+- [x] Stap 3c – Foto's en documenten
 - [ ] Stap 3d – WhatsApp
 
 Tijdens het bouwen worden gegevens alleen lokaal in de browser opgeslagen en gebruiken we
