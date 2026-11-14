@@ -9,17 +9,155 @@
   <link rel="icon" href="img/icoon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="img/icoon-180.png">
   <link rel="stylesheet" href="css/stijl.css">
+  <link rel="stylesheet" href="css/planning.css">
 </head>
 <body data-pagina="planning">
 
-  <main class="inhoud">
-    <h1>Planning</h1>
-    <p class="ondertitel">Medewerkers en voertuigen inplannen per dag en per week.</p>
-    <div class="binnenkort">
-      Dit onderdeel bouwen we in <strong>stap 2d</strong>.
+  <main class="inhoud breed">
+    <div class="paginakop">
+      <div>
+        <h1 id="titel">Planning</h1>
+        <p class="ondertitel" id="periode">Bezig met laden…</p>
+      </div>
+      <button class="knop alleen-planner" id="nieuwe-klus">+ Klus inplannen</button>
+    </div>
+
+    <!-- Wie ben ik? (alleen in testmodus voor de rol Medewerker) -->
+    <div class="melding info zichtbaar" id="ik-ben-blok" hidden>
+      Je bekijkt de planning van
+      <select id="ik-ben" aria-label="Medewerker"></select>
+      <span class="zacht">(testmodus: straks ziet iedere medewerker na het inloggen alleen zijn eigen planning)</span>
+    </div>
+
+    <div class="weergavebalk">
+      <div class="knoppengroep" role="group" aria-label="Periode">
+        <button class="pijl" id="vorige" aria-label="Vorige">‹</button>
+        <button data-weergave="vandaag">Vandaag</button>
+        <button data-weergave="morgen">Morgen</button>
+        <button data-weergave="week">Deze week</button>
+        <button data-weergave="volgende">Volgende week</button>
+        <button class="pijl" id="volgende" aria-label="Volgende">›</button>
+      </div>
+      <div class="filters" id="filters">
+        <input type="search" id="zoek" placeholder="Zoek medewerker…" aria-label="Zoek medewerker">
+        <select id="groep" aria-label="Groep">
+          <option value="buitendienst">Buitendienst</option>
+          <option value="opname">Opnemers</option>
+          <option value="planbaar">Buitendienst + opnemers</option>
+          <option value="">Iedereen</option>
+        </select>
+        <label class="vinkje"><input type="checkbox" id="zaterdag"> Zaterdag</label>
+      </div>
+    </div>
+
+    <p class="tip alleen-planner">Tip: tik op een leeg vak om iemand in te plannen of afwezig te melden.
+      Houd een klus vast en sleep hem naar een andere medewerker of dag.</p>
+
+    <div class="rooster-houder">
+      <div class="rooster" id="rooster"></div>
+    </div>
+
+    <div class="legenda">
+      <span><span class="blokje klus"></span> Klus</span>
+      <span><span class="blokje afwezig"></span> Afwezig</span>
+      <span><span class="blokje vrij"></span> Beschikbaar</span>
     </div>
   </main>
 
+  <!-- Melding onderin (bijv. na verslepen) -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- Keuze bij een leeg vak -->
+  <dialog id="keuze" class="venster klein-venster">
+    <div class="venster-kop">
+      <h2 id="keuze-titel">Inplannen</h2>
+      <button type="button" class="sluit" data-sluit aria-label="Sluiten">✕</button>
+    </div>
+    <div class="venster-inhoud keuze-knoppen">
+      <button class="knop" id="keuze-klus">Klus inplannen</button>
+      <button class="knop tweede" id="keuze-afwezig">Afwezig melden</button>
+    </div>
+  </dialog>
+
+  <!-- Klus -->
+  <dialog id="klus" class="venster">
+    <form id="klus-form" method="dialog">
+      <div class="venster-kop">
+        <h2 id="klus-titel">Klus</h2>
+        <button type="button" class="sluit" data-sluit aria-label="Sluiten">✕</button>
+      </div>
+      <div class="venster-inhoud">
+        <div class="velden-2">
+          <div class="veld"><label for="k-datum">Datum</label><input type="date" id="k-datum" required></div>
+          <div class="veld">
+            <label>Tijd</label>
+            <div class="dagdelen" id="k-dagdelen">
+              <button type="button" data-dagdeel="ochtend">Ochtend</button>
+              <button type="button" data-dagdeel="middag">Middag</button>
+              <button type="button" data-dagdeel="dag">Hele dag</button>
+            </div>
+          </div>
+          <div class="veld"><label for="k-start">Starttijd</label><input type="time" id="k-start" step="900" required></div>
+          <div class="veld"><label for="k-eind">Verwachte eindtijd</label><input type="time" id="k-eind" step="900" required></div>
+          <div class="veld"><label for="k-klant">Klant</label><input id="k-klant" required placeholder="Bijv. Familie Jansen"></div>
+          <div class="veld"><label for="k-tel">Telefoon klant</label><input id="k-tel" type="tel" inputmode="tel"></div>
+        </div>
+        <div class="veld"><label for="k-adres">Adres van de werkzaamheden</label><input id="k-adres" placeholder="Straat en huisnummer, plaats" style="width:100%"></div>
+        <div class="veld"><label for="k-werk">Werkzaamheden</label><textarea id="k-werk" rows="3" placeholder="Eén regel per werkzaamheid"></textarea></div>
+
+        <div class="veld">
+          <label>Medewerkers <span class="zacht" id="k-aantal"></span></label>
+          <input type="search" id="k-zoek" placeholder="Zoek medewerker…" aria-label="Zoek medewerker" style="width:100%; margin-bottom:8px">
+          <div class="keuzelijst" id="k-medewerkers"></div>
+        </div>
+
+        <div class="veld"><label for="k-bijz">Bijzonderheden</label><textarea id="k-bijz" rows="2"></textarea></div>
+        <p class="zacht">Voertuig, materialen, gereedschap, foto's en WhatsApp volgen in fase 3 en 4.</p>
+        <div class="melding" id="k-melding"></div>
+      </div>
+      <div class="venster-voet alleen-planner">
+        <button type="button" class="knop gevaar" id="k-verwijder">Verwijderen</button>
+        <span class="ruimte"></span>
+        <button type="button" class="knop tweede" data-sluit>Annuleren</button>
+        <button type="submit" class="knop">Opslaan</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Afwezigheid -->
+  <dialog id="afwezig" class="venster klein-venster">
+    <form id="afwezig-form" method="dialog">
+      <div class="venster-kop">
+        <h2 id="afwezig-titel">Afwezig melden</h2>
+        <button type="button" class="sluit" data-sluit aria-label="Sluiten">✕</button>
+      </div>
+      <div class="venster-inhoud">
+        <div class="veld"><label for="a-medewerker">Medewerker</label><select id="a-medewerker" style="width:100%"></select></div>
+        <div class="veld"><label for="a-soort">Soort</label>
+          <select id="a-soort" style="width:100%">
+            <option>Vakantie</option><option>Ziek</option><option>Verlof</option><option>Cursus</option><option>Overig</option>
+          </select>
+        </div>
+        <div class="velden-2">
+          <div class="veld"><label for="a-van">Van</label><input type="date" id="a-van" required></div>
+          <div class="veld"><label for="a-tot">Tot en met</label><input type="date" id="a-tot" required></div>
+        </div>
+        <div class="veld"><label for="a-opm">Opmerking</label><input id="a-opm" style="width:100%"></div>
+        <div class="melding" id="a-melding"></div>
+      </div>
+      <div class="venster-voet alleen-planner">
+        <button type="button" class="knop gevaar" id="a-verwijder">Verwijderen</button>
+        <span class="ruimte"></span>
+        <button type="button" class="knop tweede" data-sluit>Annuleren</button>
+        <button type="submit" class="knop">Opslaan</button>
+      </div>
+    </form>
+  </dialog>
+
   <script src="js/layout.js"></script>
+  <script src="js/opslag.js"></script>
+  <script src="js/keuzelijsten.js"></script>
+  <script src="js/voorbeeld.js"></script>
+  <script src="js/planning.js"></script>
 </body>
 </html>

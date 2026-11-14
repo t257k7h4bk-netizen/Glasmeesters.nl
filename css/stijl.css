@@ -28,6 +28,9 @@
 
 * { box-sizing: border-box; }
 
+/* Iets met "hidden" is altijd onzichtbaar, ook als het een knop of melding is */
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   padding: 0;

@@ -14,8 +14,10 @@
 
 const Opslag = (function () {
   const DATABASE = "glasmeesters-planner";
-  const VERSIE_DB = 1;
-  const TABEL = "gegevens";
+  const VERSIE_DB = 2;
+  const TABEL = "gegevens2";
+  // Interne veldnamen beginnen met _ zodat ze nooit botsen met eigen velden
+  // (een afwezigheid heeft bijvoorbeeld zelf een veld "soort").
 
   let dbBelofte = null;
 
@@ -26,9 +28,28 @@ const Opslag = (function () {
       const verzoek = indexedDB.open(DATABASE, VERSIE_DB);
       verzoek.onupgradeneeded = function () {
         const db = verzoek.result;
+        const tx = verzoek.transaction;
         if (!db.objectStoreNames.contains(TABEL)) {
-          const tabel = db.createObjectStore(TABEL, { keyPath: "sleutel" });
-          tabel.createIndex("soort", "soort", { unique: false });
+          const tabel = db.createObjectStore(TABEL, { keyPath: "_sleutel" });
+          tabel.createIndex("_soort", "_soort", { unique: false });
+        }
+        // Overzetten uit versie 1 (oude tabel "gegevens")
+        if (db.objectStoreNames.contains("gegevens")) {
+          const oud = tx.objectStore("gegevens");
+          const nieuw = tx.objectStore(TABEL);
+          oud.openCursor().onsuccess = function (e) {
+            const cursor = e.target.result;
+            if (cursor) {
+              const r = Object.assign({}, cursor.value);
+              const categorie = r.soort;
+              delete r.sleutel;
+              delete r.soort;
+              nieuw.put(Object.assign(r, { _sleutel: categorie + ":" + r.id, _soort: categorie }));
+              cursor.continue();
+            } else {
+              db.deleteObjectStore("gegevens");
+            }
+          };
         }
       };
       verzoek.onsuccess = function () { klaar(verzoek.result); };
@@ -69,16 +90,20 @@ const Opslag = (function () {
 
   function zonderSleutel(rij) {
     const kopie = Object.assign({}, rij);
-    delete kopie.sleutel;
-    delete kopie.soort;
+    delete kopie._sleutel;
+    delete kopie._soort;
     return kopie;
+  }
+
+  function metSleutel(soort, item) {
+    return Object.assign({}, item, { _sleutel: soort + ":" + item.id, _soort: soort });
   }
 
   return {
     // Alle items van één soort, bijvoorbeeld "medewerkers"
     alle: function (soort) {
       return handeling("readonly", async function (tabel, zet) {
-        const rijen = await verzoekNaarBelofte(tabel.index("soort").getAll(soort));
+        const rijen = await verzoekNaarBelofte(tabel.index("_soort").getAll(soort));
         zet(rijen.map(zonderSleutel));
       });
     },
@@ -99,7 +124,7 @@ const Opslag = (function () {
       if (!opTeSlaan.aangemaakt_op) opTeSlaan.aangemaakt_op = nu;
       opTeSlaan.gewijzigd_op = nu;
       return handeling("readwrite", function (tabel, zet) {
-        tabel.put(Object.assign({ sleutel: soort + ":" + opTeSlaan.id, soort: soort }, opTeSlaan));
+        tabel.put(metSleutel(soort, opTeSlaan));
         zet(opTeSlaan);
       });
     },
@@ -116,7 +141,7 @@ const Opslag = (function () {
       return handeling("readonly", async function (tabel, zet) {
         const rijen = await verzoekNaarBelofte(tabel.getAll());
         const telling = {};
-        rijen.forEach(function (r) { telling[r.soort] = (telling[r.soort] || 0) + 1; });
+        rijen.forEach(function (r) { telling[r._soort] = (telling[r._soort] || 0) + 1; });
         zet(telling);
       });
     },
@@ -127,7 +152,7 @@ const Opslag = (function () {
         const rijen = await verzoekNaarBelofte(tabel.getAll());
         const gegevens = {};
         rijen.forEach(function (r) {
-          (gegevens[r.soort] = gegevens[r.soort] || []).push(zonderSleutel(r));
+          (gegevens[r._soort] = gegevens[r._soort] || []).push(zonderSleutel(r));
         });
         zet({
           programma: "Glasmeesters Planner",
@@ -147,7 +172,7 @@ const Opslag = (function () {
         tabel.clear();
         Object.keys(backup.gegevens).forEach(function (soort) {
           backup.gegevens[soort].forEach(function (item) {
-            tabel.put(Object.assign({ sleutel: soort + ":" + item.id, soort: soort }, item));
+            tabel.put(metSleutel(soort, item));
           });
         });
       });

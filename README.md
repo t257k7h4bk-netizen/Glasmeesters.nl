@@ -15,6 +15,7 @@ glasopnames, voertuigen en gereedschap in één programma.
 | `js/keuzelijsten.js` | Vaste lijsten: functies, opleidingen en bevoegdheden |
 | `js/voorbeeld.js` | De 30 verzonnen voorbeeldmedewerkers |
 | `medewerkers.html` | Medewerkerslijst met zoeken, filteren en detailkaart |
+| `planning.html`, `js/planning.js`, `css/planning.css` | Planning: rooster, klussen, afwezigheid, verslepen, controles op dubbele boekingen |
 | `beheer.html` | Instellingen (dagdelen), back-up downloaden/terugzetten, alles wissen |
 | `img/` | Pictogrammen voor het beginscherm van tablet en telefoon |
 | `manifest.webmanifest` | Zorgt dat het programma als app op het beginscherm kan |
@@ -25,7 +26,7 @@ glasopnames, voertuigen en gereedschap in één programma.
 - [x] Stap 2a – Basis: menu, huisstijl, startscherm
 - [x] Stap 2b – Rollen nagespeeld, lokale opslag, back-upknoppen
 - [x] Stap 2c – Medewerkers (30 fictieve medewerkers)
-- [ ] Stap 2d – Planning
+- [x] Stap 2d – Planning
 - [ ] Stap 2e – Dashboard met echte tellers
 
 Tijdens het bouwen worden gegevens alleen lokaal in de browser opgeslagen en gebruiken we
