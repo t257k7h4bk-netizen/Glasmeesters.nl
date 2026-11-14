@@ -1,0 +1,13 @@
+{
+  "name": "Glasmeesters Planner",
+  "short_name": "GM Planner",
+  "lang": "nl",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#F4F6F8",
+  "theme_color": "#2A5577",
+  "icons": [
+    { "src": "img/icoon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "img/icoon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

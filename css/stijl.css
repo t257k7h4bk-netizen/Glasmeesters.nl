@@ -1,0 +1,193 @@
+/* =========================================================
+   Glasmeesters Planner – huisstijl en opmaak
+   Alle kleuren staan hieronder op één plek. Wil je een kleur
+   aanpassen? Verander dan alleen de waarde achter de naam.
+   ========================================================= */
+
+:root {
+  --blauw: #2A5577;          /* huisstijl: donkerblauw */
+  --blauw-donker: #1E3F5A;
+  --goud: #E1B03E;           /* huisstijl: goudgeel */
+  --goud-donker: #C99A2E;
+
+  --groen: #2E8B57;          /* in orde */
+  --oranje: #E08A1E;         /* aandacht nodig */
+  --rood: #C0392B;           /* actie vereist */
+  --grijs: #8A9099;          /* niet actief */
+
+  --tekst: #1F2933;
+  --tekst-zacht: #5F6B7A;
+  --lijn: #DDE3EA;
+  --achtergrond: #F4F6F8;
+  --wit: #FFFFFF;
+
+  --rand: 10px;
+  --menu-breedte: 230px;
+  --lettertype: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--lettertype);
+  font-size: 16px;
+  color: var(--tekst);
+  background: var(--achtergrond);
+}
+
+a { color: var(--blauw); }
+
+/* ---------- Menu (links op computer en tablet) ---------- */
+
+.menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--menu-breedte);
+  background: var(--blauw);
+  color: var(--wit);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 12px;
+  overflow-y: auto;
+}
+
+.logo {
+  display: block;
+  text-decoration: none;
+  color: var(--wit);
+  text-align: center;
+  margin: 0 0 24px;
+  line-height: 1;
+}
+.logo .logo-glas { display: block; font-size: 28px; font-weight: 700; letter-spacing: 2px; }
+.logo .logo-meesters { display: block; font-size: 14px; letter-spacing: 3px; margin-top: 4px; }
+.logo .logo-planner { display: block; font-size: 12px; color: var(--goud); margin-top: 8px; letter-spacing: 1px; }
+
+.menu nav a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  margin-bottom: 2px;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 15px;
+}
+.menu nav a:hover { background: rgba(255, 255, 255, 0.08); color: var(--wit); }
+.menu nav a.actief { background: var(--goud); color: var(--blauw-donker); font-weight: 600; }
+.menu nav .icoon { width: 22px; text-align: center; font-size: 18px; }
+
+.menu .versie {
+  margin-top: auto;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  text-align: center;
+  padding-top: 16px;
+}
+
+/* ---------- Hoofdgedeelte ---------- */
+
+.inhoud {
+  margin-left: var(--menu-breedte);
+  padding: 28px 32px 48px;
+  max-width: 1300px;
+}
+
+h1 { font-size: 26px; margin: 0 0 6px; color: var(--blauw-donker); }
+h2 { font-size: 19px; margin: 28px 0 12px; color: var(--blauw-donker); }
+.ondertitel { color: var(--tekst-zacht); margin: 0 0 24px; }
+
+/* ---------- Tegels op het dashboard ---------- */
+
+.tegels {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.tegel {
+  background: var(--wit);
+  border: 1px solid var(--lijn);
+  border-radius: var(--rand);
+  padding: 16px 18px;
+}
+.tegel .label { font-size: 14px; color: var(--tekst-zacht); }
+.tegel .getal { font-size: 30px; font-weight: 700; margin: 6px 0 4px; }
+.tegel .status { font-size: 14px; display: flex; align-items: center; gap: 8px; }
+
+.stip { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.stip.groen { background: var(--groen); }
+.stip.oranje { background: var(--oranje); }
+.stip.rood { background: var(--rood); }
+.stip.grijs { background: var(--grijs); }
+
+/* ---------- Kaarten en meldingen ---------- */
+
+.kaart {
+  background: var(--wit);
+  border: 1px solid var(--lijn);
+  border-radius: var(--rand);
+  padding: 20px;
+}
+
+.binnenkort {
+  background: var(--wit);
+  border: 2px dashed var(--lijn);
+  border-radius: var(--rand);
+  padding: 32px;
+  text-align: center;
+  color: var(--tekst-zacht);
+}
+.binnenkort strong { color: var(--blauw); }
+
+/* ---------- Knoppen ---------- */
+
+.knop {
+  display: inline-block;
+  background: var(--goud);
+  color: var(--blauw-donker);
+  border: none;
+  border-radius: 8px;
+  padding: 11px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+.knop:hover { background: var(--goud-donker); }
+.knop.tweede { background: var(--wit); color: var(--blauw); border: 1px solid var(--blauw); }
+
+/* ---------- Telefoon: menu onderaan ---------- */
+
+@media (max-width: 760px) {
+  .menu {
+    top: auto;
+    width: 100%;
+    height: 64px;
+    flex-direction: row;
+    padding: 0;
+    overflow: hidden;
+    z-index: 10;
+  }
+  .logo, .menu .versie { display: none; }
+  .menu nav { display: flex; width: 100%; overflow-x: auto; }
+  .menu nav a {
+    flex-direction: column;
+    gap: 2px;
+    font-size: 11px;
+    padding: 8px 10px;
+    margin: 0;
+    border-radius: 0;
+    min-width: 72px;
+    justify-content: center;
+  }
+  .inhoud { margin-left: 0; padding: 20px 16px 96px; }
+  h1 { font-size: 22px; }
+  .tegels { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tegel .getal { font-size: 24px; }
+}

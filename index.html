@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard – Glasmeesters Planner</title>
+  <meta name="theme-color" content="#2A5577">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="img/icoon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="img/icoon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="GM Planner">
+  <link rel="stylesheet" href="css/stijl.css">
+</head>
+<body data-pagina="dashboard">
+
+  <main class="inhoud">
+    <h1>Goedemorgen</h1>
+    <p class="ondertitel" id="vandaag">Vandaag</p>
+
+    <div class="tegels">
+      <div class="tegel">
+        <div class="label">Medewerkers ingepland</div>
+        <div class="getal">–</div>
+        <div class="status"><span class="stip grijs"></span>nog geen gegevens</div>
+      </div>
+      <div class="tegel">
+        <div class="label">Opdrachten vandaag</div>
+        <div class="getal">–</div>
+        <div class="status"><span class="stip grijs"></span>nog geen gegevens</div>
+      </div>
+      <div class="tegel">
+        <div class="label">APK en onderhoud</div>
+        <div class="getal">–</div>
+        <div class="status"><span class="stip grijs"></span>nog geen gegevens</div>
+      </div>
+      <div class="tegel">
+        <div class="label">Certificaten</div>
+        <div class="getal">–</div>
+        <div class="status"><span class="stip grijs"></span>nog geen gegevens</div>
+      </div>
+    </div>
+
+    <h2>Actie nodig</h2>
+    <div class="binnenkort">
+      Hier komen straks de rode en oranje meldingen.<br>
+      <strong>We vullen dit in stap 2e.</strong>
+    </div>
+  </main>
+
+  <script src="js/layout.js"></script>
+  <script>
+    // Toon de datum van vandaag in het Nederlands, bijvoorbeeld "zaterdag 14 november 2026"
+    const nu = new Date();
+    document.getElementById("vandaag").textContent =
+      nu.toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+    // Begroeting afhankelijk van het tijdstip
+    const uur = nu.getHours();
+    const groet = uur < 12 ? "Goedemorgen" : uur < 18 ? "Goedemiddag" : "Goedenavond";
+    document.querySelector("h1").textContent = groet;
+  </script>
+</body>
+</html>
