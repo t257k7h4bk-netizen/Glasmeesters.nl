@@ -1,0 +1,5 @@
+# Bestanden die niet online hoeven te staan
+.git
+wrangler.jsonc
+.assetsignore
+README.md
