@@ -63,7 +63,7 @@
   // ---------- Wie staat waar? ----------
   function klussenVan(id, datum) {
     return klussen
-      .filter(function (k) { return k.datum === datum && (k.medewerkers || []).indexOf(id) !== -1; })
+      .filter(function (k) { return Werkopdracht.telt(k) && k.datum === datum && (k.medewerkers || []).indexOf(id) !== -1; })
       .sort(function (a, b) { return a.start.localeCompare(b.start); });
   }
   function afwezigOp(id, datum) {
@@ -71,41 +71,8 @@
   }
   function overlapt(a1, a2, b1, b2) { return a1 < b2 && b1 < a2; }
 
-  // Geeft een lijst met redenen waarom de klus NIET kan (leeg = in orde)
-  function blokkades(klus) {
-    const redenen = [];
-    (klus.medewerkers || []).forEach(function (id) {
-      const m = medewerker(id);
-      if (!m) return;
-      if (!m.actief) redenen.push(naam(m) + " is niet actief.");
-      const af = afwezigOp(id, klus.datum);
-      if (af) redenen.push(naam(m) + " is afwezig (" + af.soort.toLowerCase() + ").");
-      klussen.forEach(function (k) {
-        if (k.id === klus.id || k.datum !== klus.datum) return;
-        if ((k.medewerkers || []).indexOf(id) === -1) return;
-        if (overlapt(klus.start, klus.eind, k.start, k.eind)) {
-          redenen.push(naam(m) + " staat al ingepland van " + k.start + " tot " + k.eind + " bij " + k.klant + ".");
-        }
-      });
-    });
-    return redenen;
-  }
-
-  // Status van één medewerker voor een tijdvak (voor de keuzelijst in het klusvenster)
-  function statusVoor(id, datum, start, eind, negeerKlusId) {
-    const m = medewerker(id);
-    if (!m.actief) return { soort: "grijs", tekst: "niet actief" };
-    const af = afwezigOp(id, datum);
-    if (af) return { soort: "grijs", tekst: "afwezig: " + af.soort.toLowerCase() };
-    const bots = klussen.find(function (k) {
-      return k.id !== negeerKlusId && k.datum === datum && (k.medewerkers || []).indexOf(id) !== -1 &&
-             overlapt(start, eind, k.start, k.eind);
-    });
-    if (bots) return { soort: "rood", tekst: "bezet " + bots.start + "–" + bots.eind + " (" + bots.klant + ")" };
-    const anders = klussenVan(id, datum).filter(function (k) { return k.id !== negeerKlusId; });
-    if (anders.length) return { soort: "groen", tekst: "vrij (verder: " + anders.map(function (k) { return k.start + "–" + k.eind; }).join(", ") + ")" };
-    return { soort: "groen", tekst: "vrij" };
-  }
+  // Controles op dubbele boekingen staan in js/werkopdracht.js (gedeeld met Werkopdrachten)
+  function blokkades(klus) { return Werkopdracht.blokkades(klus); }
 
   // ---------- Welke dagen en mensen tonen we? ----------
   function getoondeDagen() {
@@ -186,7 +153,7 @@
         }
         lijst.forEach(function (k) {
           const anderen = (k.medewerkers || []).filter(function (id) { return id !== m.id; }).map(medewerker).filter(Boolean);
-          inhoud += '<div class="blok klus" data-klus="' + k.id + '" data-medewerker="' + m.id + '">' +
+          inhoud += '<div class="blok klus st-' + (k.status || "gepland") + '" data-klus="' + k.id + '" data-medewerker="' + m.id + '">' +
                       '<b>' + k.start + '–' + k.eind + '</b>' +
                       '<span class="klant">' + esc(k.klant) + '</span>' +
                       (stand.soort === "dag" && k.adres ? '<span class="adres">' + esc(k.adres) + '</span>' : "") +
@@ -277,148 +244,10 @@
     openAfwezig(null, gekozenCel);
   });
 
-  // ----- Klusvenster -----
-  let huidigeKlus = null;
-  let gekozenMedewerkers = [];
-
-  function tekenKeuzelijst() {
-    const datum = document.getElementById("k-datum").value;
-    const start = document.getElementById("k-start").value;
-    const eind = document.getElementById("k-eind").value;
-    const zoek = document.getElementById("k-zoek").value.trim().toLowerCase();
-    const negeer = huidigeKlus ? huidigeKlus.id : null;
-
-    const kandidaten = medewerkers
-      .filter(function (m) { return m.actief || gekozenMedewerkers.indexOf(m.id) !== -1; })
-      .filter(function (m) { return groepVanFunctie(m.functie) !== "kantoor" || gekozenMedewerkers.indexOf(m.id) !== -1; })
-      .filter(function (m) { return !zoek || naam(m).toLowerCase().indexOf(zoek) !== -1 || gekozenMedewerkers.indexOf(m.id) !== -1; })
-      .sort(function (a, b) {
-        const ga = gekozenMedewerkers.indexOf(a.id) !== -1 ? 0 : 1;
-        const gb = gekozenMedewerkers.indexOf(b.id) !== -1 ? 0 : 1;
-        return ga - gb || a.voornaam.localeCompare(b.voornaam, "nl");
-      });
-
-    document.getElementById("k-medewerkers").innerHTML = kandidaten.map(function (m) {
-      const s = datum && start && eind ? statusVoor(m.id, datum, start, eind, negeer) : { soort: "grijs", tekst: "" };
-      const aan = gekozenMedewerkers.indexOf(m.id) !== -1;
-      return '<label class="keuze-item' + (aan ? " aan" : "") + '">' +
-               '<input type="checkbox" value="' + m.id + '"' + (aan ? " checked" : "") + (magPlannen ? "" : " disabled") + '>' +
-               '<span class="keuze-naam">' + esc(naam(m)) + ' <span class="zacht">' + esc(m.functie) + '</span></span>' +
-               '<span class="status-tekst ' + s.soort + '">' + esc(s.tekst) + '</span>' +
-             '</label>';
-    }).join("");
-    document.getElementById("k-aantal").textContent = gekozenMedewerkers.length ? "(" + gekozenMedewerkers.length + " gekozen)" : "";
-  }
-
-  document.getElementById("k-medewerkers").addEventListener("change", function (e) {
-    if (e.target.type !== "checkbox") return;
-    const id = e.target.value;
-    if (e.target.checked) { if (gekozenMedewerkers.indexOf(id) === -1) gekozenMedewerkers.push(id); }
-    else gekozenMedewerkers = gekozenMedewerkers.filter(function (x) { return x !== id; });
-    tekenKeuzelijst();
-  });
-  ["k-datum", "k-start", "k-eind"].forEach(function (id) {
-    document.getElementById(id).addEventListener("change", function () { markeerDagdeel(); tekenKeuzelijst(); });
-  });
-  document.getElementById("k-zoek").addEventListener("input", tekenKeuzelijst);
-
-  function markeerDagdeel() {
-    const s = document.getElementById("k-start").value, e = document.getElementById("k-eind").value;
-    const welke = s === dagdelen.ochtend_van && e === dagdelen.ochtend_tot ? "ochtend" :
-                  s === dagdelen.middag_van && e === dagdelen.middag_tot ? "middag" :
-                  s === dagdelen.ochtend_van && e === dagdelen.middag_tot ? "dag" : "";
-    document.querySelectorAll("[data-dagdeel]").forEach(function (k) { k.classList.toggle("actief", k.dataset.dagdeel === welke); });
-  }
-  document.querySelectorAll("[data-dagdeel]").forEach(function (k) {
-    k.addEventListener("click", function () {
-      if (!magPlannen) return;
-      const d = k.dataset.dagdeel;
-      document.getElementById("k-start").value = d === "middag" ? dagdelen.middag_van : dagdelen.ochtend_van;
-      document.getElementById("k-eind").value = d === "ochtend" ? dagdelen.ochtend_tot : dagdelen.middag_tot;
-      markeerDagdeel();
-      tekenKeuzelijst();
-    });
-  });
-
+  // ----- Werkopdracht openen (gedeeld venster uit js/werkopdracht.js) -----
   function openKlus(klus, cel) {
-    huidigeKlus = klus;
-    const k = klus || {
-      datum: cel ? cel.datum : iso(stand.soort === "dag" ? stand.datum : vandaag()),
-      start: dagdelen.ochtend_van, eind: dagdelen.ochtend_tot,
-      klant: "", adres: "", telefoon_klant: "", werkzaamheden: "", bijzonderheden: "",
-      medewerkers: cel ? [cel.medewerker] : []
-    };
-    gekozenMedewerkers = (k.medewerkers || []).slice();
-    document.getElementById("klus-titel").textContent = klus ? k.klant : "Nieuwe klus";
-    document.getElementById("k-datum").value = k.datum;
-    document.getElementById("k-start").value = k.start;
-    document.getElementById("k-eind").value = k.eind;
-    document.getElementById("k-klant").value = k.klant || "";
-    document.getElementById("k-tel").value = k.telefoon_klant || "";
-    document.getElementById("k-adres").value = k.adres || "";
-    document.getElementById("k-werk").value = k.werkzaamheden || "";
-    document.getElementById("k-bijz").value = k.bijzonderheden || "";
-    document.getElementById("k-zoek").value = "";
-    document.getElementById("k-verwijder").hidden = !klus;
-    melding("k-melding");
-    document.querySelectorAll("#klus input, #klus textarea").forEach(function (el) {
-      if (el.id !== "k-zoek") el.disabled = !magPlannen;
-    });
-    markeerDagdeel();
-    tekenKeuzelijst();
-    document.getElementById("klus").showModal();
+    Werkopdracht.open(klus, cel ? { datum: cel.datum, medewerker: cel.medewerker } : { datum: iso(stand.soort === "dag" ? stand.datum : vandaag()) });
   }
-
-  document.getElementById("klus-form").addEventListener("submit", async function (e) {
-    e.preventDefault();
-    if (!magPlannen) return;
-    const k = Object.assign({}, huidigeKlus || { status: "gepland" }, {
-      datum: document.getElementById("k-datum").value,
-      start: document.getElementById("k-start").value,
-      eind: document.getElementById("k-eind").value,
-      klant: document.getElementById("k-klant").value.trim(),
-      telefoon_klant: document.getElementById("k-tel").value.trim(),
-      adres: document.getElementById("k-adres").value.trim(),
-      werkzaamheden: document.getElementById("k-werk").value.trim(),
-      bijzonderheden: document.getElementById("k-bijz").value.trim(),
-      medewerkers: gekozenMedewerkers.slice()
-    });
-    if (!k.datum || !k.start || !k.eind || !k.klant) {
-      melding("k-melding", "fout", "Vul in elk geval de datum, tijden en de klant in.");
-      return;
-    }
-    if (k.eind <= k.start) {
-      melding("k-melding", "fout", "De eindtijd moet later zijn dan de starttijd.");
-      return;
-    }
-    const redenen = blokkades(k);
-    if (redenen.length) {
-      melding("k-melding", "fout", "<strong>Dubbele boeking – opslaan kan niet:</strong><br>" + redenen.map(esc).join("<br>"));
-      return;
-    }
-    const opgeslagen = await Opslag.bewaar("klussen", k);
-    if (!k.medewerkers.length) toast("Klus opgeslagen. Let op: er is nog niemand ingepland.", "waarschuwing");
-    else toast("Klus " + k.klant + " opgeslagen.", "goed");
-    sluitVensters();
-    await herlaad();
-    // Spring naar de week/dag van de klus als die niet in beeld is
-    const dagen = getoondeDagen().map(iso);
-    if (dagen.indexOf(opgeslagen.datum) === -1) { stand.datum = lees(opgeslagen.datum); schuif(0); }
-  });
-
-  document.getElementById("k-verwijder").addEventListener("click", async function () {
-    if (!huidigeKlus) return;
-    if (!confirm("Klus " + huidigeKlus.klant + " verwijderen?")) return;
-    const oud = huidigeKlus;
-    await Opslag.verwijder("klussen", oud.id);
-    sluitVensters();
-    await herlaad();
-    toast("Klus " + oud.klant + " verwijderd.", "", async function () {
-      await Opslag.bewaar("klussen", oud);
-      await herlaad();
-    });
-  });
-
   document.getElementById("nieuwe-klus").addEventListener("click", function () { openKlus(null, null); });
 
   // ----- Afwezigheidsvenster -----
@@ -652,17 +481,31 @@
 
   // ---------- Laden ----------
   async function herlaad() {
-    medewerkers = await Opslag.alle("medewerkers");
-    klussen = await Opslag.alle("klussen");
-    afwezigheid = await Opslag.alle("afwezigheid");
-    const d = await Opslag.haal("instellingen", "dagdelen");
-    if (d) dagdelen = d;
+    const g = await Werkopdracht.laadGegevens();
+    medewerkers = g.medewerkers;
+    klussen = g.klussen;
+    afwezigheid = g.afwezigheid;
+    dagdelen = g.dagdelen;
     teken();
   }
+
+  // Na opslaan in het werkopdrachtvenster: opnieuw tekenen en naar de juiste dag/week springen
+  Werkopdracht.instellen({
+    magBewerken: magPlannen,
+    toast: function (t, s, o) { toast(t, s, o); },
+    naOpslaan: async function (opdracht) {
+      await herlaad();
+      if (opdracht && opdracht.datum && getoondeDagen().map(iso).indexOf(opdracht.datum) === -1) {
+        stand.datum = lees(opdracht.datum);
+        schuif(0);
+      }
+    }
+  });
 
   async function start() {
     await Voorbeeld.zorgVoorMedewerkers();
     await Voorbeeld.zorgVoorPlanning();
+    await Werkopdracht.zorgVoorNummers();
     medewerkers = await Opslag.alle("medewerkers");
     zetIkBen();
     // Op zaterdag of zondag openen we de komende week

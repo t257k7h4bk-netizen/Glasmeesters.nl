@@ -177,6 +177,20 @@ const Voorbeeld = (function () {
       "Isolatieglas plaatsen, 10 ramen", ["Bert Huizinga", "Niels Jonker", "Mehmet Kaya"], ""]
   ];
 
+  // Soort werk en glas per voorbeeldopdracht
+  const SOORT = {
+    "Familie Jansen": [["HR++ glas plaatsen", "Nieuwe glaslatten plaatsen", "Kitwerkzaamheden"], "HR++"],
+    "Basisschool De Fontein": [["Veiligheidsglas plaatsen"], "Gelaagd glas"],
+    "Familie de Groot": [["Reparatie / herstel"], "Dubbel glas"],
+    "Café Het Hoekje": [["Gelaagd glas plaatsen"], "Gelaagd glas"],
+    "Familie Smits": [["Enkel glas vervangen", "HR+++ glas plaatsen"], "HR+++"],
+    "VvE Parkzicht": [["Triple glas plaatsen", "Glas vervangen in bestaande kozijnen"], "Triple glas"],
+    "Familie Kok": [["Opname / inmeten"], ""],
+    "Prinsenhof (monument)": [["Reparatie / herstel"], "Glas-in-lood"],
+    "Familie Wiersma": [["Kitwerkzaamheden"], ""],
+    "Kantoorpand Noorderhaven": [["Isolatieglas plaatsen"], "HR++"]
+  };
+
   // medewerker, soort, van (dag), tot (dag)
   const AFWEZIG = [
     ["Stefan Wolters", "Vakantie", 0, 2],
@@ -210,7 +224,8 @@ const Voorbeeld = (function () {
         await Opslag.bewaar("klussen", {
           datum: opDag(k[0]), start: k[1], eind: k[2], klant: k[3], adres: k[4], telefoon_klant: k[5],
           werkzaamheden: k[6], medewerkers: k[7].map(idVan).filter(Boolean), bijzonderheden: k[8],
-          status: "gepland", voorbeeld: true
+          status: "gepland", voorbeeld: true,
+          soort_werk: (SOORT[k[3]] || [[], ""])[0], soort_glas: (SOORT[k[3]] || [[], ""])[1]
         });
       }
       for (const a of AFWEZIG) {

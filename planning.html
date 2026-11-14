@@ -19,7 +19,7 @@
         <h1 id="titel">Planning</h1>
         <p class="ondertitel" id="periode">Bezig met laden…</p>
       </div>
-      <button class="knop alleen-planner" id="nieuwe-klus">+ Klus inplannen</button>
+      <button class="knop alleen-planner" id="nieuwe-klus">+ Werkopdracht</button>
     </div>
 
     <!-- Wie ben ik? (alleen in testmodus voor de rol Medewerker) -->
@@ -79,51 +79,6 @@
     </div>
   </dialog>
 
-  <!-- Klus -->
-  <dialog id="klus" class="venster">
-    <form id="klus-form" method="dialog">
-      <div class="venster-kop">
-        <h2 id="klus-titel">Klus</h2>
-        <button type="button" class="sluit" data-sluit aria-label="Sluiten">✕</button>
-      </div>
-      <div class="venster-inhoud">
-        <div class="velden-2">
-          <div class="veld"><label for="k-datum">Datum</label><input type="date" id="k-datum" required></div>
-          <div class="veld">
-            <label>Tijd</label>
-            <div class="dagdelen" id="k-dagdelen">
-              <button type="button" data-dagdeel="ochtend">Ochtend</button>
-              <button type="button" data-dagdeel="middag">Middag</button>
-              <button type="button" data-dagdeel="dag">Hele dag</button>
-            </div>
-          </div>
-          <div class="veld"><label for="k-start">Starttijd</label><input type="time" id="k-start" step="900" required></div>
-          <div class="veld"><label for="k-eind">Verwachte eindtijd</label><input type="time" id="k-eind" step="900" required></div>
-          <div class="veld"><label for="k-klant">Klant</label><input id="k-klant" required placeholder="Bijv. Familie Jansen"></div>
-          <div class="veld"><label for="k-tel">Telefoon klant</label><input id="k-tel" type="tel" inputmode="tel"></div>
-        </div>
-        <div class="veld"><label for="k-adres">Adres van de werkzaamheden</label><input id="k-adres" placeholder="Straat en huisnummer, plaats" style="width:100%"></div>
-        <div class="veld"><label for="k-werk">Werkzaamheden</label><textarea id="k-werk" rows="3" placeholder="Eén regel per werkzaamheid"></textarea></div>
-
-        <div class="veld">
-          <label>Medewerkers <span class="zacht" id="k-aantal"></span></label>
-          <input type="search" id="k-zoek" placeholder="Zoek medewerker…" aria-label="Zoek medewerker" style="width:100%; margin-bottom:8px">
-          <div class="keuzelijst" id="k-medewerkers"></div>
-        </div>
-
-        <div class="veld"><label for="k-bijz">Bijzonderheden</label><textarea id="k-bijz" rows="2"></textarea></div>
-        <p class="zacht">Voertuig, materialen, gereedschap, foto's en WhatsApp volgen in fase 3 en 4.</p>
-        <div class="melding" id="k-melding"></div>
-      </div>
-      <div class="venster-voet alleen-planner">
-        <button type="button" class="knop gevaar" id="k-verwijder">Verwijderen</button>
-        <span class="ruimte"></span>
-        <button type="button" class="knop tweede" data-sluit>Annuleren</button>
-        <button type="submit" class="knop">Opslaan</button>
-      </div>
-    </form>
-  </dialog>
-
   <!-- Afwezigheid -->
   <dialog id="afwezig" class="venster klein-venster">
     <form id="afwezig-form" method="dialog">
@@ -158,6 +113,7 @@
   <script src="js/opslag.js"></script>
   <script src="js/keuzelijsten.js"></script>
   <script src="js/voorbeeld.js"></script>
+  <script src="js/werkopdracht.js"></script>
   <script src="js/planning.js"></script>
 </body>
 </html>

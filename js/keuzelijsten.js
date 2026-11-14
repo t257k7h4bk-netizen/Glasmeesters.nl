@@ -47,6 +47,49 @@ const BEVOEGDHEDEN = [
   { code: "ervaring_monument", naam: "Ervaring met monumentaal glas", soort: "Ervaring", wettelijk: false, verloopt: false }
 ];
 
+// Soorten werkzaamheden (uit het ontwerp)
+const WERKZAAMHEDEN = [
+  "Enkel glas vervangen",
+  "HR++ glas plaatsen",
+  "HR+++ glas plaatsen",
+  "Triple glas plaatsen",
+  "Veiligheidsglas plaatsen",
+  "Gelaagd glas plaatsen",
+  "Gehard glas plaatsen",
+  "Isolatieglas plaatsen",
+  "Glas vervangen in bestaande kozijnen",
+  "Glaslatten vervangen",
+  "Nieuwe glaslatten plaatsen",
+  "Kitwerkzaamheden",
+  "Reparatie / herstel",
+  "Opname / inmeten"
+];
+
+// Glassoorten (zelfde lijst als bij de opnames in fase 5)
+const GLASSOORTEN = [
+  "Enkel glas", "Dubbel glas", "HR++", "HR+++", "Triple glas", "Gelaagd glas",
+  "Gehard glas", "Figuurglas", "Zonwerend glas", "Brandwerend glas", "Glas-in-lood", "Overig"
+];
+
+// Status van een werkopdracht
+const STATUSSEN = [
+  { code: "concept",      naam: "Concept",       kleur: "grijs"  },
+  { code: "voorbereiden", naam: "Voorbereiden",  kleur: "oranje" },
+  { code: "gepland",      naam: "Gepland",       kleur: "blauw"  },
+  { code: "bezig",        naam: "Bezig",         kleur: "goud"   },
+  { code: "klaar",        naam: "Klaar",         kleur: "groen"  },
+  { code: "geannuleerd",  naam: "Geannuleerd",   kleur: "rood"   }
+];
+
+function statusNaam(code) {
+  const s = STATUSSEN.find(function (x) { return x.code === code; });
+  return s ? s.naam : "Gepland";
+}
+function statusKleur(code) {
+  const s = STATUSSEN.find(function (x) { return x.code === code; });
+  return s ? s.kleur : "blauw";
+}
+
 const ROL_IN_PROGRAMMA = {
   beheerder: "Beheerder",
   planner: "Planner",

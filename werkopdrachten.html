@@ -13,13 +13,180 @@
 <body data-pagina="werkopdrachten">
 
   <main class="inhoud">
-    <h1>Werkopdrachten</h1>
-    <p class="ondertitel">Klussen aanmaken, bijhouden en per WhatsApp doorsturen.</p>
-    <div class="binnenkort">
-      Dit onderdeel bouwen we in <strong>fase 3</strong>.
+    <div class="paginakop">
+      <div>
+        <h1 id="titel">Werkopdrachten</h1>
+        <p class="ondertitel" id="samenvatting">Bezig met laden…</p>
+      </div>
+      <button class="knop" id="nieuw">+ Nieuwe werkopdracht</button>
     </div>
+
+    <div class="filterbalk">
+      <input type="search" id="zoek" placeholder="Zoek op klant, adres of opdrachtnummer…" aria-label="Zoeken">
+      <select id="periode" aria-label="Periode">
+        <option value="komend">Vandaag en later</option>
+        <option value="vandaag">Vandaag</option>
+        <option value="week">Deze week</option>
+        <option value="ongepland">Nog niet gepland</option>
+        <option value="verleden">Afgelopen</option>
+        <option value="alles">Alles</option>
+      </select>
+      <select id="status" aria-label="Status">
+        <option value="">Alle statussen</option>
+      </select>
+    </div>
+
+    <div class="opdrachten" id="lijst"></div>
   </main>
 
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
   <script src="js/layout.js"></script>
+  <script src="js/opslag.js"></script>
+  <script src="js/keuzelijsten.js"></script>
+  <script src="js/voorbeeld.js"></script>
+  <script src="js/werkopdracht.js"></script>
+  <script>
+  if (!document.body.classList.contains("geen-toegang")) {
+
+    const rol = huidigeRol();
+    const magBewerken = rol === "beheerder" || rol === "planner";
+    if (!magBewerken) document.getElementById("nieuw").hidden = true;
+
+    let opdrachten = [], medewerkers = [], ikBen = null;
+
+    function esc(t) {
+      return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    }
+    const iso = Werkopdracht.iso;
+    const vandaag = iso(new Date());
+    function maandagVan(d) { const x = new Date(d); const wd = x.getDay() || 7; x.setDate(x.getDate() - (wd - 1)); return x; }
+    const weekStart = iso(maandagVan(new Date()));
+    const weekEind = (function () { const x = maandagVan(new Date()); x.setDate(x.getDate() + 6); return iso(x); })();
+
+    // Melding onderin
+    let timer = null;
+    function toast(tekst, soort, ongedaan) {
+      const el = document.getElementById("toast");
+      el.className = "toast zichtbaar " + (soort || "");
+      el.innerHTML = "<span>" + esc(tekst) + "</span>" + (ongedaan ? '<button type="button">Ongedaan maken</button>' : "");
+      if (ongedaan) el.querySelector("button").onclick = async function () { await ongedaan(); el.className = "toast"; };
+      clearTimeout(timer);
+      timer = setTimeout(function () { el.className = "toast"; }, 6000);
+    }
+
+    document.getElementById("status").innerHTML += STATUSSEN.map(function (s) {
+      return '<option value="' + s.code + '">' + s.naam + '</option>';
+    }).join("");
+
+    function voornamen(lijst) {
+      return (lijst || []).map(function (id) {
+        const m = medewerkers.find(function (x) { return x.id === id; });
+        return m ? m.voornaam : "?";
+      }).join(", ");
+    }
+
+    function datumTekst(o) {
+      if (!o.datum) return "Nog niet gepland";
+      const d = new Date(o.datum + "T00:00:00");
+      return d.toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" }) + " · " + o.start + "–" + o.eind;
+    }
+
+    function toon() {
+      const zoek = document.getElementById("zoek").value.trim().toLowerCase();
+      const periode = document.getElementById("periode").value;
+      const status = document.getElementById("status").value;
+
+      let lijst = opdrachten.slice();
+      if (rol === "medewerker") lijst = lijst.filter(function (o) { return (o.medewerkers || []).indexOf(ikBen) !== -1; });
+      lijst = lijst.filter(function (o) {
+        if (periode === "komend") return !o.datum || o.datum >= vandaag;
+        if (periode === "vandaag") return o.datum === vandaag;
+        if (periode === "week") return o.datum && o.datum >= weekStart && o.datum <= weekEind;
+        if (periode === "ongepland") return !o.datum;
+        if (periode === "verleden") return o.datum && o.datum < vandaag;
+        return true;
+      });
+      if (status) lijst = lijst.filter(function (o) { return (o.status || "gepland") === status; });
+      if (zoek) lijst = lijst.filter(function (o) {
+        return [o.klant, o.adres, o.nummer, o.werkzaamheden, (o.soort_werk || []).join(" ")].join(" ").toLowerCase().indexOf(zoek) !== -1;
+      });
+      lijst.sort(function (a, b) {
+        if (!a.datum && b.datum) return -1;
+        if (a.datum && !b.datum) return 1;
+        const x = (a.datum || "") + (a.start || ""), y = (b.datum || "") + (b.start || "");
+        return periode === "verleden" ? y.localeCompare(x) : x.localeCompare(y);
+      });
+
+      const el = document.getElementById("lijst");
+      el.innerHTML = lijst.length ? lijst.map(function (o) {
+        const st = o.status || "gepland";
+        return '<button class="opdracht" data-id="' + o.id + '">' +
+                 '<span class="opdracht-links">' +
+                   '<span class="nummer">' + esc(o.nummer || "") + '</span>' +
+                   '<span class="label st-' + statusKleur(st) + '">' + statusNaam(st) + '</span>' +
+                 '</span>' +
+                 '<span class="opdracht-midden">' +
+                   '<strong>' + esc(o.klant) + '</strong>' +
+                   (o.adres ? '<span class="zacht">' + esc(o.adres) + '</span>' : "") +
+                   ((o.soort_werk || []).length ? '<span class="tags">' + o.soort_werk.map(function (w) { return '<span class="tag">' + esc(w) + '</span>'; }).join("") + '</span>' : "") +
+                 '</span>' +
+                 '<span class="opdracht-rechts">' +
+                   '<span class="' + (o.datum ? "" : "oranje-tekst") + '">' + esc(datumTekst(o)) + '</span>' +
+                   '<span class="zacht">' + (o.datum ? ((o.medewerkers || []).length ? esc(voornamen(o.medewerkers)) : '<span class="rood-tekst">nog niemand</span>') : "") + '</span>' +
+                 '</span>' +
+               '</button>';
+      }).join("") : '<div class="binnenkort">Geen werkopdrachten gevonden.</div>';
+
+      const ongepland = opdrachten.filter(function (o) { return !o.datum && o.status !== "geannuleerd"; }).length;
+      const komend = opdrachten.filter(function (o) { return o.datum && o.datum >= vandaag && o.status !== "geannuleerd"; }).length;
+      document.getElementById("samenvatting").textContent = rol === "medewerker"
+        ? "Jouw werkopdrachten"
+        : komend + " gepland vanaf vandaag · " + ongepland + " nog niet gepland";
+    }
+
+    async function laad() {
+      const g = await Werkopdracht.laadGegevens();
+      opdrachten = g.klussen;
+      medewerkers = g.medewerkers;
+      toon();
+    }
+
+    Werkopdracht.instellen({ magBewerken: magBewerken, toast: toast, naOpslaan: laad });
+
+    document.getElementById("lijst").addEventListener("click", function (e) {
+      const k = e.target.closest(".opdracht");
+      if (k) Werkopdracht.open(opdrachten.find(function (o) { return o.id === k.dataset.id; }));
+    });
+    document.getElementById("nieuw").addEventListener("click", function () { Werkopdracht.open(null, { datum: "" }); });
+    ["zoek", "periode", "status"].forEach(function (id) {
+      document.getElementById(id).addEventListener(id === "zoek" ? "input" : "change", toon);
+    });
+
+    (async function () {
+      await Voorbeeld.zorgVoorMedewerkers();
+      await Voorbeeld.zorgVoorPlanning();
+      await Werkopdracht.zorgVoorNummers();
+      if (rol === "medewerker") {
+        try { ikBen = localStorage.getItem("gm-ik-ben"); } catch (e) {}
+        const mw = await Opslag.alle("medewerkers");
+        if (!mw.some(function (m) { return m.id === ikBen; })) {
+          const jan = mw.find(function (m) { return m.voornaam === "Jan" && m.achternaam === "Bakker"; });
+          ikBen = jan ? jan.id : null;
+        }
+        document.getElementById("titel").textContent = "Mijn werkopdrachten";
+      }
+      await laad();
+      // Direct een opdracht openen via ?id=...
+      const id = new URLSearchParams(location.search).get("id");
+      if (id) {
+        const o = opdrachten.find(function (x) { return x.id === id; });
+        if (o) Werkopdracht.open(o);
+      }
+    })();
+  }
+  </script>
 </body>
 </html>

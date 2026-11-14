@@ -16,6 +16,7 @@ glasopnames, voertuigen en gereedschap in één programma.
 | `js/voorbeeld.js` | De 30 verzonnen voorbeeldmedewerkers |
 | `medewerkers.html` | Medewerkerslijst met zoeken, filteren en detailkaart |
 | `planning.html`, `js/planning.js`, `css/planning.css` | Planning: rooster, klussen, afwezigheid, verslepen, controles op dubbele boekingen |
+| `werkopdrachten.html`, `js/werkopdracht.js` | Werkopdrachtenlijst en het gedeelde werkopdrachtvenster (ook gebruikt in de planning) |
 | `beheer.html` | Instellingen (dagdelen), back-up downloaden/terugzetten, alles wissen |
 | `img/` | Pictogrammen voor het beginscherm van tablet en telefoon |
 | `manifest.webmanifest` | Zorgt dat het programma als app op het beginscherm kan |
@@ -28,7 +29,10 @@ glasopnames, voertuigen en gereedschap in één programma.
 - [x] Stap 2c – Medewerkers (30 fictieve medewerkers)
 - [x] Stap 2d – Planning
 - [x] Stap 2e – Dashboard met echte tellers
-- [ ] Fase 3 – Werkopdrachten en WhatsApp
+- [x] Stap 3a – Werkopdrachten: nummer, status, werkzaamheden, glassoort
+- [ ] Stap 3b – Voertuig, materialen en gereedschap
+- [ ] Stap 3c – Foto's en documenten
+- [ ] Stap 3d – WhatsApp
 
 Tijdens het bouwen worden gegevens alleen lokaal in de browser opgeslagen en gebruiken we
 uitsluitend fictieve gegevens.

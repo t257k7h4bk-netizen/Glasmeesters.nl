@@ -63,6 +63,7 @@
   async function start() {
     await Voorbeeld.zorgVoorMedewerkers();
     await Voorbeeld.zorgVoorPlanning();
+    await Werkopdracht.zorgVoorNummers();
     const medewerkers = await Opslag.alle("medewerkers");
     const klussen = await Opslag.alle("klussen");
     const afwezigheid = await Opslag.alle("afwezigheid");
@@ -78,7 +79,7 @@
       return m ? m.voornaam : "?";
     };
     const klussenOp = function (d) {
-      return klussen.filter(function (k) { return k.datum === iso(d); })
+      return klussen.filter(function (k) { return k.datum === iso(d) && k.status !== "geannuleerd"; })
         .sort(function (a, b) { return a.start.localeCompare(b.start); });
     };
     const afwezigOp = function (id, d) {
@@ -131,7 +132,7 @@
 
     // Klussen met een niet-actieve of afwezige medewerker (bijv. later ziek gemeld of op non-actief gezet)
     const problemen = [];
-    klussen.filter(function (k) { return k.datum >= iso(vandaag); }).forEach(function (k) {
+    klussen.filter(function (k) { return k.datum && k.datum >= iso(vandaag) && k.status !== "geannuleerd"; }).forEach(function (k) {
       (k.medewerkers || []).forEach(function (id) {
         const m = medewerkers.find(function (x) { return x.id === id; });
         if (!m) problemen.push({ k: k, tekst: "een verwijderde medewerker" });
@@ -163,6 +164,19 @@
     }
     html += tegel({ label: "Medewerkers", getal: actief.length, status: "groen",
                     tekst: planbaar.length + " buitendienst en opnemers", link: "medewerkers.html" });
+    // Werkvoorbereiding: opdrachten die nog voorbereid of gepland moeten worden
+    const binnen5 = iso(plus(vandaag, 7));
+    const voorbereiden = klussen.filter(function (k) { return k.status === "voorbereiden"; });
+    const voorbereidenSnel = voorbereiden.filter(function (k) { return k.datum && k.datum <= binnen5; });
+    const ongepland = klussen.filter(function (k) { return !k.datum && k.status !== "geannuleerd"; });
+    if (rol !== "wagenpark") {
+      html += tegel({
+        label: "Werkvoorbereiding", getal: voorbereiden.length + ongepland.length,
+        status: voorbereidenSnel.length ? "oranje" : (voorbereiden.length + ongepland.length) ? "groen" : "grijs",
+        tekst: voorbereiden.length + " voorbereiden · " + ongepland.length + " nog niet gepland",
+        link: "werkopdrachten.html"
+      });
+    }
     html += tegel({ label: "Voertuigen", getal: "–", status: "grijs", tekst: "volgt in fase 4" });
     html += tegel({ label: "APK en onderhoud", getal: "–", status: "grijs", tekst: "volgt in fase 4" });
     html += tegel({ label: "Gereedschapskeuringen", getal: "–", status: "grijs", tekst: "volgt in fase 4" });
@@ -172,10 +186,13 @@
     // Actie nodig: eerst rood, dan oranje
     let acties = "";
     zonderMensen.forEach(function (k) {
-      acties += regel("rood", "Klus <strong>" + esc(k.klant) + "</strong> (" + dagNaam(new Date(k.datum + "T00:00:00")) + " " + k.start + ") heeft nog geen medewerker", "planning.html");
+      acties += regel("rood", "Opdracht <strong>" + esc(k.klant) + "</strong> (" + dagNaam(new Date(k.datum + "T00:00:00")) + " " + k.start + ") heeft nog geen medewerker", "werkopdrachten.html?id=" + k.id);
     });
     problemen.forEach(function (p) {
       acties += regel("rood", "Klus <strong>" + esc(p.k.klant) + "</strong> op " + esc(new Date(p.k.datum + "T00:00:00").toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" })) + " heeft " + esc(p.tekst), "planning.html");
+    });
+    voorbereidenSnel.forEach(function (k) {
+      acties += regel("oranje", "Opdracht <strong>" + esc(k.klant) + "</strong> (" + esc(new Date(k.datum + "T00:00:00").toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" })) + ") moet nog voorbereid worden", "werkopdrachten.html?id=" + k.id);
     });
     if (zienCerts) {
       verlopen.forEach(function (x) {
@@ -195,7 +212,7 @@
         (dagNaam(d) === "vandaag" || dagNaam(d) === "morgen" ? "" : " " + d.toLocaleDateString("nl-NL", { day: "numeric", month: "long" }));
       document.getElementById("dagplanning").innerHTML = lijst.length
         ? lijst.map(function (k) {
-            return '<a class="dagregel" href="planning.html">' +
+            return '<a class="dagregel" href="werkopdrachten.html?id=' + k.id + '">' +
                      '<span class="tijd">' + k.start + "–" + k.eind + '</span>' +
                      '<span class="wat"><strong>' + esc(k.klant) + '</strong>' +
                        (k.adres ? '<span class="zacht">' + esc(k.adres) + '</span>' : "") +

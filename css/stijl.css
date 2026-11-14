@@ -333,6 +333,87 @@ input:disabled, select:disabled, textarea:disabled { background: var(--achtergro
 .bevoegdheden li .zacht { font-size: 13px; width: 100%; padding-left: 18px; margin-top: -2px; }
 .bevoegdheden li.b-verlopen > span:nth-child(2) { color: var(--rood); font-weight: 600; }
 
+/* ---------- Werkopdrachtenlijst ---------- */
+
+.opdrachten { display: flex; flex-direction: column; gap: 8px; }
+.opdracht {
+  display: grid; grid-template-columns: 130px 1fr auto; gap: 16px; align-items: start;
+  background: var(--wit); border: 1px solid var(--lijn); border-radius: var(--rand);
+  padding: 14px 16px; text-align: left; font: inherit; color: inherit; cursor: pointer;
+}
+.opdracht:hover { border-color: var(--blauw); }
+.opdracht-links, .opdracht-midden, .opdracht-rechts { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.opdracht-rechts { text-align: right; align-items: flex-end; font-size: 15px; }
+.opdracht .nummer { font-weight: 700; color: var(--blauw-donker); font-size: 14px; }
+.opdracht .label { margin-top: 0; }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.tag { font-size: 12px; background: var(--achtergrond); border: 1px solid var(--lijn); border-radius: 6px; padding: 2px 7px; }
+.label.st-grijs { background: #ECEEF1; color: var(--tekst-zacht); }
+.label.st-blauw { background: #E6EEF5; color: var(--blauw); }
+.label.st-goud { background: #FBF0D4; color: #7A5A12; }
+.label.st-oranje { background: #FDF1E2; color: #9A5A0C; }
+.label.st-groen { background: #E7F4EC; color: var(--groen); }
+.label.st-rood { background: #FBEDEB; color: var(--rood); }
+.oranje-tekst { color: #9A5A0C; font-weight: 600; }
+
+/* ---------- Gedeelde onderdelen: werkopdrachtvenster en meldingen ---------- */
+
+.breed-venster { width: min(860px, 96vw); }
+.vol { width: 100%; }
+.venster h3.sectie { font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--tekst-zacht); margin: 22px 0 10px; padding-top: 14px; border-top: 1px solid var(--lijn); }
+.venster h3.sectie:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+.werkvakjes { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px 14px; margin-bottom: 14px; }
+.werkvakje { display: flex; align-items: center; gap: 8px; font-size: 15px; cursor: pointer; }
+.werkvakje input { width: 20px; height: 20px; flex-shrink: 0; }
+
+/* ---------- Vensters ---------- */
+
+.klein-venster { width: min(460px, 94vw); }
+.keuze-knoppen { display: flex; flex-direction: column; gap: 10px; }
+.keuze-knoppen .knop { width: 100%; padding: 14px; }
+
+.dagdelen { display: flex; gap: 6px; flex-wrap: wrap; }
+.dagdelen button {
+  font: inherit; font-size: 14px; padding: 9px 12px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--blauw); background: var(--wit); color: var(--blauw);
+}
+.dagdelen button.actief { background: var(--blauw); color: var(--wit); }
+
+.keuzelijst { max-height: 260px; overflow-y: auto; border: 1px solid var(--lijn); border-radius: 8px; }
+.keuze-item {
+  display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: center;
+  padding: 8px 10px; border-bottom: 1px solid var(--lijn); cursor: pointer; font-size: 15px;
+}
+.keuze-item:last-child { border-bottom: none; }
+.keuze-item.aan { background: #FBF6E6; }
+.keuze-item input { width: 20px; height: 20px; }
+.veld label.keuze-item { display: grid; font-weight: 400; margin: 0; }
+.keuze-naam { min-width: 0; }
+.status-tekst { font-size: 13px; text-align: right; }
+.status-tekst.groen { color: var(--groen); }
+.status-tekst.rood { color: var(--rood); font-weight: 600; }
+.status-tekst.grijs { color: var(--grijs); }
+
+/* ---------- Melding onderin ---------- */
+
+.toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 140%);
+  background: var(--blauw-donker); color: var(--wit);
+  padding: 12px 16px; border-radius: 10px; max-width: min(640px, 92vw);
+  display: flex; gap: 14px; align-items: center; font-size: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  transition: transform 0.25s ease, visibility 0.25s; z-index: 50;
+  visibility: hidden;
+}
+.toast.zichtbaar { transform: translate(-50%, 0); visibility: visible; }
+.toast.goed { background: #1D5E3A; }
+.toast.fout { background: #8E2A20; }
+.toast.waarschuwing { background: #9A5A0C; }
+.toast button {
+  background: none; border: 1px solid rgba(255, 255, 255, 0.6); color: var(--wit);
+  border-radius: 6px; padding: 6px 10px; font: inherit; font-size: 14px; cursor: pointer; white-space: nowrap;
+}
+
 /* ---------- Telefoon: menu onderaan ---------- */
 
 @media (max-width: 760px) {
@@ -358,6 +439,12 @@ input:disabled, select:disabled, textarea:disabled { background: var(--achtergro
   .kaarten { grid-template-columns: 1fr; }
   .personen { grid-template-columns: 1fr; }
   .dashboard-kolommen { grid-template-columns: 1fr; gap: 0; }
+  .toast { bottom: 80px; }
+  .opdracht { grid-template-columns: 1fr; gap: 6px; }
+  .opdracht-links { flex-direction: row; gap: 10px; align-items: center; }
+  .opdracht-rechts { text-align: left; align-items: flex-start; }
+  .keuze-item { grid-template-columns: 26px 1fr; }
+  .status-tekst { grid-column: 2; text-align: left; }
   .dagregel .tijd { min-width: 80px; }
   .velden-2, .bevoegdheden { grid-template-columns: 1fr; }
   .venster { width: 100vw; max-width: 100vw; max-height: 100vh; height: 100%; border-radius: 0; margin: 0; }
