@@ -630,3 +630,24 @@ input:disabled, select:disabled, textarea:disabled { background: var(--achtergro
 .calc-winst-blok strong { font-size: 22px; }
 .tag-geld { background: #FFF6E0; border-color: #EBCB7A; color: #7A5A12; font-weight: 600; }
 .wo-geld-knop { margin-right: 8px; }
+
+/* ---------- Nij Begun in de calculatie (fase C3) ---------- */
+.calc-nb { margin-top: 18px; border: 2px solid #A9D3B1; background: #F6FBF7; border-radius: var(--rand); padding: 4px 16px 14px; }
+.calc-nb .sectie { color: #23663A; }
+.nb-tabel { min-width: 1050px; }
+.nb-tabel .n-code { width: 110px; }
+.nb-tabel .n-oms { min-width: 150px; }
+.nb-tabel .n-waarde { width: 100px; }
+.nb-tabel .n-aantal, .nb-tabel .n-max { width: 85px; }
+.nb-tabel .n-prijs { width: 115px; }
+.nb-tabel tr.boven-max td { background: #FBE9E7; }
+.nb-tabel tr.boven-max .n-prijs { border-color: var(--rood); color: var(--rood); font-weight: 700; }
+.calc-nb-meldingen .melding { margin: 8px 0; }
+.nb-check { display: flex; flex-direction: column; gap: 6px; }
+.nb-check-regel { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border-radius: 8px; background: var(--wit); border: 1px solid var(--lijn); cursor: pointer; }
+.nb-check-regel input { width: 22px; height: 22px; flex: none; margin-top: 1px; accent-color: #23663A; }
+.nb-check-regel.ok { border-color: #A9D3B1; }
+.nb-zin { display: block; margin: 6px 0; padding: 6px 8px; background: #F1F4F7; border-radius: 6px; font-style: italic; }
+.nb-check-stand { font-weight: 700; margin: 8px 0 0; color: var(--oranje); }
+.nb-check-stand.compleet { color: #23663A; }
+.nb-auto { width: 22px; flex: none; text-align: center; font-size: 18px; line-height: 22px; }

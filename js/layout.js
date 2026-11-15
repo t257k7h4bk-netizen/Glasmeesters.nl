@@ -7,7 +7,7 @@
    Rechten aanpassen? Pas de lijst "rollen" van dat tabblad aan.
    ========================================================= */
 
-const VERSIE = "Versie 0.20 – stap C2";
+const VERSIE = "Versie 0.21 – stap C3";
 
 // Alle rollen uit het ontwerp
 const ROLLEN = {

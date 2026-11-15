@@ -271,7 +271,7 @@
                  '</td><td>' + esc(g.waarde || "–") + '</td><td>' + (g.eenheid === "m²" ? m2(g.hoeveel) : g.hoeveel + (g.hoeveel === 1 ? " stuk" : " stuks") + (g.mm ? " (" + (g.mm / 1000).toLocaleString("nl-NL", { maximumFractionDigits: 2 }) + " m)" : "")) +
                  '</td><td>' + esc(g.ramen.join(", ")) + '</td></tr>';
         }).join("") + '</tbody></table>' +
-        (zonderCode ? '<p class="uitleg">Niet elke maatregel heeft een code. De beheerder vult de codes uit de maatregelencatalogus in onder <strong>Beheer → Nij Begun</strong>.</p>' : "")
+        (zonderCode ? '<p class="uitleg">Niet elke maatregel heeft een code. De beheerder vult de codes uit de maatregelencatalogus in onder <strong>💶 Tarieven → Nij Begun</strong>.</p>' : "")
       : '<p class="zacht">Nog geen ramen met nieuw glas of roosters.</p>';
   }
 

@@ -332,12 +332,15 @@ function nbStatusNaam(code) { const s = NB_STATUS.find(function (x) { return x.c
 
 // Maatregelcodes uit de maatregelencatalogus van Nij Begun, in te vullen in Beheer
 // glas[glassoort] = { code, waarde }   rooster[soort] = { code, waarde }
-let NB_CODES = { glas: {}, rooster: {} };
+// glas[soort] / rooster[soort] = { code, waarde, max (maximumprijs incl. btw per eenheid), eenheid ("m²" | "m" | "stuk") }
+let NB_CODES = { glas: {}, rooster: {}, zin: "" };
 async function laadNijBegun() {
   const s = await Opslag.haal("instellingen", "nijbegun");
-  NB_CODES = { glas: (s && s.glas) || {}, rooster: (s && s.rooster) || {} };
+  NB_CODES = { glas: (s && s.glas) || {}, rooster: (s && s.rooster) || {}, zin: (s && s.zin) || "" };
   return NB_CODES;
 }
+// Subsidiepercentage bij een gekozen regeling ("100% subsidie …" → 100)
+function nbPercentage(regeling) { const m = String(regeling || "").match(/(\d+)%/); return m ? Number(m[1]) : null; }
 
 // Maatregelen van een opname, gegroepeerd zoals ze op de offerte en factuur moeten
 function nbMaatregelen(o) {
@@ -346,19 +349,24 @@ function nbMaatregelen(o) {
     if (r.glas_nieuw) {
       const c = NB_CODES.glas[r.glas_nieuw] || {};
       const k = "glas|" + r.glas_nieuw;
-      const g = groepen[k] = groepen[k] || { code: c.code || "", waarde: c.waarde || "", omschrijving: r.glas_nieuw, eenheid: "m²", hoeveel: 0, ramen: [] };
+      const g = groepen[k] = groepen[k] || { type: "glas", soort: r.glas_nieuw, code: c.code || "", waarde: c.waarde || "", omschrijving: r.glas_nieuw, eenheid: "m²", hoeveel: 0, mm: 0, ramen: [],
+                                              max: c.max === undefined || c.max === "" ? null : Number(c.max), max_eenheid: c.eenheid || "m²" };
       g.hoeveel += raamOppervlakte(r); g.ramen.push(r.nummer);
     }
     const rs = roosterSoort(r);
     if (rs && rs !== "Geen") {
       const c = NB_CODES.rooster[rs] || {};
       const k = "rooster|" + rs;
-      const g = groepen[k] = groepen[k] || { code: c.code || "", waarde: c.waarde || "", omschrijving: rs, eenheid: "stuks", hoeveel: 0, mm: 0, ramen: [] };
+      const g = groepen[k] = groepen[k] || { type: "rooster", soort: rs, code: c.code || "", waarde: c.waarde || "", omschrijving: rs, eenheid: "stuks", hoeveel: 0, mm: 0, ramen: [],
+                                              max: c.max === undefined || c.max === "" ? null : Number(c.max), max_eenheid: c.eenheid || "stuk" };
       const n = Number(r.rooster_aantal) || 1;
       g.hoeveel += n; g.mm += (Number(r.rooster_lengte) || 0) * n; g.ramen.push(r.nummer);
     }
   });
-  return Object.keys(groepen).map(function (k) { return groepen[k]; });
+  // Zijn er codes of maximumprijzen ingesteld? Dan alleen die soorten (andere vallen niet onder Nij Begun)
+  const ingesteld = Object.keys(NB_CODES.glas).length + Object.keys(NB_CODES.rooster).length > 0;
+  return Object.keys(groepen).map(function (k) { return groepen[k]; })
+    .filter(function (g) { return !ingesteld || g.code || g.max !== null; });
 }
 
 // ---------- Calculatie en winst (fase C) ----------

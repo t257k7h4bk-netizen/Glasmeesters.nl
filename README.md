@@ -54,7 +54,7 @@ glasopnames, voertuigen en gereedschap in één programma.
 - [x] Stap 5c – Omzetten naar werkopdracht, PDF, Nij Begun (maatregelcodes, stand van zaken)
 - [x] Stap C1 – Rol Administratie, tarievenblad, calculatie per werkopdracht
 - [x] Stap C2 – Overzicht winst per week, maand en jaar
-- [ ] Stap C3 – Nij Begun: maximumprijzen, subsidie en eigen bijdrage, afvinklijst
+- [x] Stap C3 – Nij Begun: maximumprijzen, subsidie en eigen bijdrage, afvinklijst
 
 Tijdens het bouwen worden gegevens alleen lokaal in de browser opgeslagen en gebruiken we
 uitsluitend fictieve gegevens.

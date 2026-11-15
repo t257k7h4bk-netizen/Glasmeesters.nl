@@ -265,6 +265,19 @@
     if (verlies.length) html += '<h3 class="sectie">Met verlies in ' + jaar + ' (' + verlies.length + ')</h3>' +
       '<div class="fin-tabel-houder"><table class="tabel fin-tabel"><thead><tr><th>Nr</th><th>Datum</th><th>Klant</th><th>Factuur</th><th class="getal">Omzet</th><th class="getal">Kosten</th><th class="getal">Winst</th></tr></thead><tbody>' +
       verlies.map(function (p) { return postRij(p, true); }).join("") + '</tbody></table></div>';
+    // Nij Begun
+    const nb = posten.filter(function (p) { return p.klus.calculatie.totalen && p.klus.calculatie.totalen.nb; });
+    const boven = nb.filter(function (p) { return p.klus.calculatie.totalen.nb.boven_max > 0; });
+    const onvolledig = nb.filter(function (p) { return !p.klus.calculatie.totalen.nb.compleet && boven.indexOf(p) === -1; });
+    const nbLijst = function (l, uitleg) {
+      return '<ul class="fin-lijst">' + l.map(function (p) {
+        return '<li><a href="werkopdrachten.html?id=' + encodeURIComponent(p.klus.id) + '">' + esc(p.klus.nummer || "") + " – " + esc(p.klus.klant) + '</a> <span class="zacht">' + uitleg(p) + '</span></li>';
+      }).join("") + '</ul>';
+    };
+    if (boven.length) html += '<h3 class="sectie">⛔ Nij Begun: prijs boven het maximum (' + boven.length + ')</h3>' +
+      nbLijst(boven, function (p) { return p.klus.calculatie.totalen.nb.boven_max + " maatregel(en) te hoog"; });
+    if (onvolledig.length) html += '<h3 class="sectie">Nij Begun: afvinklijst nog niet compleet (' + onvolledig.length + ')</h3>' +
+      nbLijst(onvolledig, function (p) { return "eigen bijdrage " + euro(p.klus.calculatie.totalen.nb.eigen_bijdrage); });
     $("aandacht").innerHTML = html || '<p class="zacht">Alles is bijgewerkt. 👍</p>';
   }
 

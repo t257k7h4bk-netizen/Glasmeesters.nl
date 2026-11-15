@@ -9,6 +9,7 @@
   <link rel="icon" href="img/icoon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="img/icoon-180.png">
   <link rel="stylesheet" href="css/stijl.css">
+  <link rel="stylesheet" href="css/financieel.css">
   <style>
     .tarief-rij { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--lijn); }
     .tarief-rij label { flex: 1; font-weight: 500; }
@@ -16,6 +17,8 @@
     .tarief-rij input { width: 110px; text-align: right; }
     .tarief-rij .eenheid { color: var(--tekst-zacht); min-width: 70px; font-size: 14px; }
     .tarief-rij.anders input { border-color: var(--goud-donker); background: #FFFBEF; }
+    .nb-prijs-tabel input, .nb-prijs-tabel select { width: 100%; min-width: 90px; }
+    .nb-prijs-tabel .invoer { display: flex; align-items: center; gap: 4px; }
     .tarieven-knoppen { position: sticky; bottom: 0; background: var(--achtergrond); padding: 12px 0; display: flex; gap: 10px; flex-wrap: wrap; z-index: 2; }
   </style>
 </head>
@@ -27,6 +30,22 @@
     <div class="melding zichtbaar waarschuwing" id="fictief">De bedragen hieronder zijn <strong>voorbeelden (fictief)</strong>. Vervang ze door de echte prijzen van Glasmeesters.</div>
 
     <div class="kaarten" id="tarieven"></div>
+
+    <section class="kaart nb-tarieven" style="margin-top:16px">
+      <h2>Nij Begun – maatregelen en maximumprijzen</h2>
+      <p class="uitleg">Neem per glas- en roostersoort over uit de <strong>maatregelencatalogus van Nij Begun</strong>: de maatregelcode,
+        de waarde (bijv. de U-waarde) en de <strong>maximumprijs incl. btw</strong> per eenheid. De calculatie waarschuwt als een prijs
+        daarboven komt. Leeg laten mag.</p>
+      <div class="fin-tabel-houder"><table class="tabel nb-prijs-tabel">
+        <thead><tr><th>Glas of rooster</th><th>Maatregelcode</th><th>Waarde</th><th>Maximumprijs incl. btw</th><th>Per</th></tr></thead>
+        <tbody id="nb-codes"></tbody>
+      </table></div>
+      <div class="veld" style="margin-top:12px">
+        <label for="nb-zin">Verplichte zin op offerte en factuur</label>
+        <textarea id="nb-zin" rows="2" class="vol" placeholder="Plak hier de zin uit de afvinklijst van Nij Begun (handleiding offerte en facturen)"></textarea>
+        <p class="uitleg">Deze zin moet volgens Nij Begun altijd op de offerte en de factuur staan. Kopieer hem letterlijk uit de afvinklijst op nijbegun.nl.</p>
+      </div>
+    </section>
 
     <div class="tarieven-knoppen">
       <button class="knop" id="opslaan">Opslaan</button>
@@ -83,6 +102,40 @@
       }).join("");
     }
 
+    // ----- Nij Begun -----
+    const NB_GLAS = ["HR++", "HR+++", "Triple glas", "Gelaagd glas", "Gehard glas", "Zonwerend glas"];
+    const NB_ROOSTER = ["Gewoon rooster", "Isolerend rooster"];
+    function nbRij(soort, naam, w, standaardEenheid) {
+      const eenheid = w.eenheid || standaardEenheid;
+      return '<tr data-soort="' + soort + '" data-naam="' + esc(naam) + '"><td>' + esc(naam) + '</td>' +
+        '<td><input class="nb-code" value="' + esc(w.code) + '" placeholder="code"></td>' +
+        '<td><input class="nb-waarde" value="' + esc(w.waarde) + '" placeholder="bijv. U ≤ 1,1"></td>' +
+        '<td><div class="invoer">€ <input class="nb-max" inputmode="decimal" value="' + esc(getal(w.max)) + '" placeholder="–"></div></td>' +
+        '<td><select class="nb-eenheid">' + ["m²", "m", "stuk"].map(function (e) { return '<option' + (e === eenheid ? " selected" : "") + '>' + e + '</option>'; }).join("") + '</select></td></tr>';
+    }
+    async function tekenNb() {
+      const c = await laadNijBegun();
+      document.getElementById("nb-codes").innerHTML =
+        NB_GLAS.map(function (g) { return nbRij("glas", g, c.glas[g] || {}, "m²"); }).join("") +
+        NB_ROOSTER.map(function (r) { return nbRij("rooster", r, c.rooster[r] || {}, "stuk"); }).join("");
+      document.getElementById("nb-zin").value = c.zin || "";
+    }
+    async function bewaarNb() {
+      const data = { id: "nijbegun", glas: {}, rooster: {}, zin: document.getElementById("nb-zin").value.trim() };
+      let fout = "";
+      document.querySelectorAll("#nb-codes tr").forEach(function (rij) {
+        const code = rij.querySelector(".nb-code").value.trim(), waarde = rij.querySelector(".nb-waarde").value.trim();
+        const maxTekst = rij.querySelector(".nb-max").value.trim(), max = leesGetal(maxTekst);
+        if (maxTekst && (max === null || max < 0)) fout = fout || rij.dataset.naam;
+        if (code || waarde || max !== null) data[rij.dataset.soort][rij.dataset.naam] = { code: code, waarde: waarde, max: max === null ? "" : max, eenheid: rij.querySelector(".nb-eenheid").value };
+      });
+      if (fout) return "Vul een geldige maximumprijs in bij " + fout + ".";
+      await Opslag.bewaar("instellingen", data);
+      await laadNijBegun();
+      return "";
+    }
+    await tekenNb();
+
     let t = await laadTarieven();
     teken(t);
     document.getElementById("fictief").hidden = !!(await Opslag.haal("instellingen", "tarieven"));
@@ -96,6 +149,8 @@
         zetWaarde(nieuw, inp.dataset.pad, w);
       });
       if (fout) { toon("fout", "Vul een geldig bedrag in bij: " + fout + "."); return; }
+      const nbFout = await bewaarNb();
+      if (nbFout) { toon("fout", nbFout); return; }
       nieuw.id = "tarieven";
       nieuw.bijgewerkt_op = new Date().toISOString();
       await Opslag.bewaar("instellingen", nieuw);

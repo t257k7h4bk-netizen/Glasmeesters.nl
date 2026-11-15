@@ -141,6 +141,23 @@ const Calculatie = (function () {
           '</div>' +
           '<div class="calc-overzicht" id="calc-overzicht"></div>' +
 
+          '<div class="calc-nb" id="calc-nb" hidden>' +
+            '<div class="calc-balk"><h3 class="sectie">Nij Begun – subsidie en eigen bijdrage</h3>' +
+              '<button type="button" class="knop tweede klein" id="calc-nb-opnieuw">↻ Maatregelen uit opname</button></div>' +
+            '<div class="velden-3"><div class="veld"><label for="calc-nb-regeling">Soort subsidie</label><select id="calc-nb-regeling"></select></div></div>' +
+            '<p class="uitleg">Per maatregel de prijs <strong>incl. btw</strong> zoals die op de offerte en factuur komt. Die mag niet hoger zijn dan de maximumprijs uit de catalogus.' +
+              ' Wat de klant extra wil (ander materiaal, maatwerk) komt als <strong>meerkosten</strong> apart op de factuur, zonder subsidie.</p>' +
+            '<div class="calc-tabel-houder"><table class="calc-tabel nb-tabel"><thead><tr>' +
+              '<th>Code</th><th>Maatregel</th><th>Waarde</th><th>Aantal</th><th>Eenheid</th><th>Max. per eenheid</th><th>Max. totaal</th><th>Prijs op offerte (incl. btw)</th><th></th><th></th>' +
+            '</tr></thead><tbody id="calc-nb-regels"></tbody></table></div>' +
+            '<button type="button" class="knop tweede klein" id="calc-nb-erbij">+ Maatregel toevoegen</button>' +
+            '<div class="calc-nb-meldingen" id="calc-nb-meldingen"></div>' +
+            '<div class="calc-overzicht" id="calc-nb-overzicht"></div>' +
+            '<h3 class="sectie">Afvinklijst offerte en factuur</h3>' +
+            '<p class="uitleg">Zonder deze onderdelen kan SNN de subsidieaanvraag niet behandelen. Wat het programma zelf kan controleren, staat al aangevinkt.</p>' +
+            '<div class="nb-check" id="calc-nb-check"></div>' +
+          '</div>' +
+
           '<h3 class="sectie">Factuur</h3>' +
           '<div class="velden-3">' +
             '<div class="veld"><label for="calc-gefact">Gefactureerd (excl. btw)</label><input id="calc-gefact" inputmode="decimal" placeholder="bijv. 2.450,00"></div>' +
@@ -191,6 +208,187 @@ const Calculatie = (function () {
       calc.marge = Number(k.dataset.m); $("calc-marge").value = calc.marge; $("calc-marge-schuif").value = calc.marge; tekenTotalen();
     });
     $("calc-gefact").addEventListener("input", function () { calc.gefactureerd_excl = leesGetal(this.value); tekenTotalen(); });
+
+    // Nij Begun
+    $("calc-nb-regeling").innerHTML = NB_REGELINGEN.map(function (r) { return '<option>' + esc(r) + '</option>'; }).join("");
+    $("calc-nb-regeling").addEventListener("change", function () { calc.nb.regeling = this.value; tekenNb(); });
+    $("calc-nb-regels").addEventListener("input", function () { leesNb(); tekenNbTotalen(); });
+    $("calc-nb-regels").addEventListener("change", function () { leesNb(); tekenNbRegels(); tekenNbTotalen(); });
+    $("calc-nb-regels").addEventListener("click", function (e) {
+      const weg = e.target.closest("[data-nb-weg]");
+      const max = e.target.closest("[data-nb-max]");
+      if (!weg && !max) return;
+      leesNb();
+      if (weg) calc.nb.maatregelen.splice(Number(weg.dataset.nbWeg), 1);
+      if (max) { const m = calc.nb.maatregelen[Number(max.dataset.nbMax)]; m.prijs = rond(m.max * m.aantal, 2); }
+      tekenNbRegels(); tekenNbTotalen();
+    });
+    $("calc-nb-erbij").addEventListener("click", function () {
+      leesNb();
+      calc.nb.maatregelen.push({ code: "", omschrijving: "", waarde: "", aantal: 1, eenheid: "m²", max: null, prijs: null });
+      tekenNbRegels(); tekenNbTotalen();
+    });
+    $("calc-nb-opnieuw").addEventListener("click", async function () {
+      if (calc.nb.maatregelen.length && !confirm("De maatregelen opnieuw overnemen uit de opname? Aangepaste prijzen gaan dan verloren.")) return;
+      leesRegels();
+      calc.nb.maatregelen = await nbUitOpname();
+      tekenNb();
+    });
+    $("calc-nb-check").addEventListener("change", function (e) {
+      const v = e.target.closest("[data-check]");
+      if (!v) return;
+      calc.nb.check = calc.nb.check || {};
+      calc.nb.check[v.dataset.check] = v.checked;
+      tekenNbCheck();
+    });
+    $("calc-nb-check").addEventListener("click", function (e) {
+      const k = e.target.closest("[data-kopieer]");
+      if (!k || !navigator.clipboard) return;
+      navigator.clipboard.writeText(NB_CODES.zin || "").then(function () { k.textContent = "Gekopieerd ✓"; setTimeout(function () { k.textContent = "Kopieer zin"; }, 2000); });
+    });
+  }
+
+  // ---------- Nij Begun ----------
+  function isNijBegun() { return !!(klus && (klus.nij_begun || (opname && opname.nij_begun === "Ja"))); }
+
+  // Maatregelen uit de opname; prijs vooraf = maximumprijs, maar samen nooit meer dan de verkoopprijs
+  async function nbUitOpname() {
+    await laadNijBegun();
+    if (!opname) return [];
+    // Alleen soorten die onder Nij Begun vallen (met een code of maximumprijs bij Tarieven).
+    // Is er nog niets ingesteld, dan alles tonen zodat zichtbaar is wat er ontbreekt.
+    const ingesteld = Object.keys(NB_CODES.glas).length + Object.keys(NB_CODES.rooster).length > 0;
+    const lijst = nbMaatregelen(opname).filter(function (g) { return !ingesteld || g.code || g.max !== null; }).map(function (g) {
+      const aantal = g.max_eenheid === "m" ? g.mm / 1000 : g.max_eenheid === "stuk" ? (g.type === "glas" ? g.ramen.length : g.hoeveel) : g.hoeveel;
+      return { code: g.code, omschrijving: g.omschrijving, waarde: g.waarde, aantal: rond(aantal, 2), eenheid: g.max_eenheid,
+               max: g.max, prijs: g.max === null ? null : rond(g.max * aantal, 2) };
+    });
+    const totaal = calcTotalen(calc).verkoopIncl;
+    const som = lijst.reduce(function (s, m) { return s + (m.prijs || 0); }, 0);
+    if (som > totaal && som > 0) lijst.forEach(function (m) { if (m.prijs !== null) m.prijs = rond(m.prijs * totaal / som, 2); });
+    return lijst;
+  }
+
+  function nbTotalen() {
+    const t = calcTotalen(calc);
+    const m = (calc.nb && calc.nb.maatregelen) || [];
+    let som = 0, subsidiabel = 0;
+    const boven = [], zonderMax = [];
+    m.forEach(function (x) {
+      const prijs = Number(x.prijs) || 0;
+      const maxTot = x.max === null || x.max === undefined || x.max === "" ? null : Number(x.max) * (Number(x.aantal) || 0);
+      som += prijs;
+      if (maxTot === null) zonderMax.push(x);
+      if (maxTot !== null && prijs > maxTot + 0.005) boven.push(x);
+      subsidiabel += maxTot === null ? prijs : Math.min(prijs, maxTot);
+    });
+    const pctSub = nbPercentage(calc.nb && calc.nb.regeling);
+    const totaal = Math.max(t.verkoopIncl, som);
+    const subsidie = pctSub === null ? 0 : subsidiabel * pctSub / 100;
+    return { verkoopIncl: t.verkoopIncl, som: som, meerkosten: Math.max(0, t.verkoopIncl - som), boven: boven, zonderMax: zonderMax,
+             subsidiabel: subsidiabel, pct: pctSub, subsidie: subsidie, eigen: totaal - subsidie, totaal: totaal, teHoog: som > t.verkoopIncl + 0.005 };
+  }
+
+  function tekenNbRegels() {
+    $("calc-nb-regels").innerHTML = calc.nb.maatregelen.map(function (m, i) {
+      const maxTot = m.max === null || m.max === undefined || m.max === "" ? null : m.max * (Number(m.aantal) || 0);
+      const boven = maxTot !== null && (Number(m.prijs) || 0) > maxTot + 0.005;
+      return '<tr data-i="' + i + '"' + (boven ? ' class="boven-max"' : "") + '>' +
+        '<td><input class="n-code" value="' + esc(m.code) + '" placeholder="ontbreekt" aria-label="Maatregelcode"></td>' +
+        '<td><input class="n-oms" value="' + esc(m.omschrijving) + '" aria-label="Maatregel"></td>' +
+        '<td><input class="n-waarde" value="' + esc(m.waarde) + '" aria-label="Waarde"></td>' +
+        '<td><input class="n-aantal getal" inputmode="decimal" value="' + esc(getalTekst(m.aantal)) + '" aria-label="Aantal"></td>' +
+        '<td><select class="n-eenheid" aria-label="Eenheid">' + ["m²", "m", "stuk"].map(function (e) { return '<option' + (e === m.eenheid ? " selected" : "") + '>' + e + '</option>'; }).join("") + '</select></td>' +
+        '<td><input class="n-max getal" inputmode="decimal" value="' + esc(getalTekst(m.max)) + '" placeholder="onbekend" aria-label="Maximumprijs per eenheid"></td>' +
+        '<td class="getal">' + (maxTot === null ? "–" : euro(maxTot)) + '</td>' +
+        '<td><input class="n-prijs getal" inputmode="decimal" value="' + esc(getalTekst(m.prijs)) + '" aria-label="Prijs op offerte"></td>' +
+        '<td>' + (maxTot !== null ? '<button type="button" class="knop tweede klein" data-nb-max="' + i + '" title="Prijs gelijk aan maximum">= max</button>' : "") + '</td>' +
+        '<td><button type="button" class="sluit" data-nb-weg="' + i + '" aria-label="Maatregel verwijderen">✕</button></td>' +
+      '</tr>';
+    }).join("") || '<tr><td colspan="10" class="zacht">Nog geen maatregelen.' + (opname ? ' Tik op "Maatregelen uit opname".' : ' Voeg een maatregel toe.') + '</td></tr>';
+  }
+
+  function leesNb() {
+    $("calc-nb-regels").querySelectorAll("tr[data-i]").forEach(function (rij) {
+      const m = calc.nb.maatregelen[Number(rij.dataset.i)];
+      m.code = rij.querySelector(".n-code").value.trim();
+      m.omschrijving = rij.querySelector(".n-oms").value;
+      m.waarde = rij.querySelector(".n-waarde").value;
+      m.aantal = leesGetal(rij.querySelector(".n-aantal").value) || 0;
+      m.eenheid = rij.querySelector(".n-eenheid").value;
+      m.max = leesGetal(rij.querySelector(".n-max").value);
+      m.prijs = leesGetal(rij.querySelector(".n-prijs").value);
+    });
+  }
+
+  function tekenNbTotalen() {
+    if (!calc.nb) return;
+    const n = nbTotalen();
+    let meld = "";
+    if (n.boven.length) meld += '<div class="melding zichtbaar fout">⛔ <strong>Boven de maximumprijs:</strong> ' + n.boven.map(function (x) { return esc(x.omschrijving || x.code || "maatregel"); }).join(", ") +
+      '. Dat mag niet bij Nij Begun: verlaag de prijs (tik op "= max") en zet het verschil eventueel als meerkosten apart.</div>';
+    if (n.teHoog) meld += '<div class="melding zichtbaar waarschuwing">⚠️ De maatregelen samen (' + euro(n.som) + ') zijn hoger dan de verkoopprijs incl. btw (' + euro(n.verkoopIncl) + '). Verhoog de marge of verlaag de prijzen per maatregel.</div>';
+    if (n.zonderMax.length) meld += '<div class="melding zichtbaar info">Van ' + n.zonderMax.length + ' maatregel' + (n.zonderMax.length === 1 ? "" : "en") + ' is de maximumprijs niet bekend. Vul die in onder 💶 Tarieven → Nij Begun.</div>';
+    if (n.pct === null) meld += '<div class="melding zichtbaar info">Kies de soort subsidie om het subsidiebedrag te berekenen.</div>';
+    $("calc-nb-meldingen").innerHTML = meld;
+    $("calc-nb-overzicht").innerHTML = '<table>' +
+      '<tr><td>Nij Begun-maatregelen</td><td>' + euro(n.som) + '</td></tr>' +
+      '<tr><td>Meerkosten (geen subsidie)</td><td>' + euro(n.meerkosten) + '</td></tr>' +
+      '<tr class="dik"><td>Totaal incl. btw</td><td>' + euro(n.totaal) + '</td></tr>' +
+      '<tr><td>Subsidie via SNN' + (n.pct !== null ? " (" + n.pct + "%)" : "") + '</td><td>− ' + euro(n.subsidie) + '</td></tr>' +
+      '<tr class="dik groot"><td>Eigen bijdrage klant</td><td>' + euro(n.eigen) + '</td></tr>' +
+    '</table>';
+    tekenNbCheck();
+  }
+
+  function nbCheckLijst() {
+    const n = nbTotalen();
+    const m = calc.nb.maatregelen;
+    const alle = function (f) { return m.length > 0 && m.every(f); };
+    const lijst = [
+      { k: "code", t: "Maatregelcode bij elke maatregel", auto: alle(function (x) { return x.code; }) },
+      { k: "aantal", t: "Aantal m² en/of stuks", auto: alle(function (x) { return Number(x.aantal) > 0; }) },
+      { k: "waarde", t: "Dikte of waarde (bijv. U-waarde)", auto: alle(function (x) { return x.waarde; }) },
+      { k: "max", t: "Prijs per maatregel niet hoger dan de maatregelencatalogus", auto: m.length > 0 && !n.boven.length && !n.zonderMax.length },
+      { k: "eigen", t: "Eigen bijdrage van de woningeigenaar (" + euro(n.eigen) + ")" },
+      { k: "uitvoer", t: "Uitvoerdatum per maatregel (op de factuur)" },
+      { k: "totaal", t: "Totale kosten van het geheel (" + euro(n.totaal) + ")" },
+      { k: "bewoner", t: "Gegevens bewoner: naam, adres en woonplaats", auto: !!(klus.klant && klus.adres) },
+      { k: "bedrijf", t: "Bedrijfsgegevens: naam, adres, KvK, IBAN en BIC" },
+      { k: "termijn", t: "Betaaltermijn" },
+      { k: "zin", t: "De verplichte zin van Nij Begun", zin: true }
+    ];
+    if (n.meerkosten > 0.005) lijst.push({ k: "meer", t: "Meerkosten (" + euro(n.meerkosten) + ") als aparte post, met de vermelding dat daar geen subsidie over wordt gegeven" });
+    lijst.push({ k: "voorwaarden", t: "Algemene voorwaarden meegestuurd" });
+    return lijst;
+  }
+
+  function tekenNbCheck() {
+    const check = calc.nb.check || {};
+    const lijst = nbCheckLijst();
+    let ok = 0;
+    $("calc-nb-check").innerHTML = lijst.map(function (c) {
+      const isAuto = c.auto !== undefined;
+      const aan = isAuto ? c.auto : !!check[c.k];
+      if (aan) ok++;
+      return '<label class="nb-check-regel' + (aan ? " ok" : "") + '">' +
+        (isAuto ? '<span class="nb-auto" aria-hidden="true">' + (aan ? "✅" : "⚠️") + '</span>'
+                : '<input type="checkbox"' + (aan ? " checked" : "") + ' data-check="' + c.k + '">') + ' ' +
+        '<span>' + esc(c.t) + (isAuto ? ' <em class="zacht">(' + (aan ? "gecontroleerd" : "nog niet in orde") + ')</em>' : "") +
+        (c.zin ? (NB_CODES.zin ? '<span class="nb-zin">' + esc(NB_CODES.zin) + '</span> <button type="button" class="knop tweede klein" data-kopieer>Kopieer zin</button>'
+                               : ' <em class="zacht">– plak de zin eerst onder 💶 Tarieven → Nij Begun</em>') : "") +
+        '</span></label>';
+    }).join("") + '<p class="nb-check-stand' + (ok === lijst.length ? " compleet" : "") + '">' + ok + ' van ' + lijst.length + ' in orde' + (ok === lijst.length ? " ✅" : "") + '</p>';
+    calc.nb.compleet = ok === lijst.length;
+  }
+
+  function tekenNb() {
+    const nb = isNijBegun();
+    $("calc-nb").hidden = !nb;
+    if (!nb) return;
+    $("calc-nb-regeling").value = calc.nb.regeling || NB_REGELINGEN[0];
+    tekenNbRegels();
+    tekenNbTotalen();
   }
 
   function opties(lijst, gekozen) {
@@ -254,6 +452,7 @@ const Calculatie = (function () {
         '<tr class="dik groot"><td>Verkoopprijs incl. btw</td><td>' + euro(t.verkoopIncl) + '</td></tr>' +
         '<tr class="' + (t.verkoopExcl - t.kostWerkelijk >= 0 ? "groen-tekst" : "rood-tekst") + '"><td>Verwachte winst' + (inkoopAnders ? " (met echte inkoop)" : "") + '</td><td>' + euro(t.verkoopExcl - t.kostWerkelijk) + '</td></tr>' +
       '</table>';
+    if (calc.nb && isNijBegun()) tekenNbTotalen();
     if (t.gefactureerd === null) {
       $("calc-winst").innerHTML = '<p class="zacht">Vul het gefactureerde bedrag in zodra de factuur de deur uit is. Dan zie je hier de nettowinst.</p>';
     } else {
@@ -280,6 +479,11 @@ const Calculatie = (function () {
     if (nieuw) {
       calc = { regels: await maakRegels(klus, opname), marge: TARIEVEN.marge, gefactureerd_excl: null, factuurnummer: "", factuurdatum: "", notitie: "" };
     }
+    await laadNijBegun();
+    if (isNijBegun() && !calc.nb) {
+      calc.nb = { regeling: (opname && opname.nb_regeling) || (klus.nij_begun && klus.nij_begun.regeling) || NB_REGELINGEN[0], maatregelen: [], check: {} };
+      calc.nb.maatregelen = await nbUitOpname();
+    }
     $("calc-titel").textContent = "Calculatie – " + (klus.klant || "");
     $("calc-sub").textContent = "Opdracht " + (klus.nummer || "") + (opname ? " · opname " + opname.nummer : "") + " · alleen zichtbaar voor beheerder en administratie";
     const m = $("calc-melding");
@@ -293,12 +497,18 @@ const Calculatie = (function () {
     $("calc-factdatum").value = calc.factuurdatum || "";
     $("calc-notitie").value = calc.notitie || "";
     tekenRegels();
+    tekenNb();
     tekenTotalen();
     $("calculatie").showModal();
   }
 
   async function opslaan() {
     leesRegels();
+    if (calc.nb && isNijBegun()) {
+      leesNb();
+      calc.nb.maatregelen = calc.nb.maatregelen.filter(function (m) { return m.code || (m.omschrijving || "").trim() || m.prijs; });
+      tekenNbCheck();
+    }
     calc.regels = calc.regels.filter(function (r) { return (r.omschrijving || "").trim() || r.aantal || r.prijs || r.werkelijk; });
     calc.factuurnummer = $("calc-factnr").value.trim();
     calc.factuurdatum = $("calc-factdatum").value;
@@ -307,6 +517,10 @@ const Calculatie = (function () {
     calc.bijgewerkt_op = new Date().toISOString();
     const t = calcTotalen(calc);
     calc.totalen = { kost: rond(t.kostWerkelijk), verkoop_excl: rond(t.verkoopExcl), verkoop_incl: rond(t.verkoopIncl), winst: t.winstNetto === null ? null : rond(t.winstNetto) };
+    if (calc.nb && isNijBegun()) {
+      const n = nbTotalen();
+      calc.totalen.nb = { boven_max: n.boven.length, subsidie: rond(n.subsidie), eigen_bijdrage: rond(n.eigen), meerkosten: rond(n.meerkosten), compleet: !!calc.nb.compleet };
+    }
     const vers = await Opslag.haal("klussen", klus.id);
     vers.calculatie = calc;
     await Opslag.bewaar("klussen", vers);
