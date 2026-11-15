@@ -43,3 +43,15 @@
   .kaart-vak { position: relative; top: 0; }
   #kaart { height: 55vh; min-height: 300px; }
 }
+
+/* Zones en parkeren (stap Z) */
+.legenda-vlak { display: inline-block; width: 14px; height: 14px; border: 2px solid #2E8B57; background: rgba(46,139,87,.15); border-radius: 3px; margin-right: 4px; vertical-align: -2px; }
+.kaart-zone { color: #1D5E3A; font-weight: 600; }
+.kaart-fout { color: #8E2A1F; background: #FBE9E7; border-radius: 6px; padding: 4px 6px; font-size: 13px; }
+.kaart-goed { color: #1D5E3A; background: #E7F4EC; border-radius: 6px; padding: 4px 6px; font-size: 13px; }
+.kaart-parkeer { color: var(--blauw-donker); font-size: 13px; }
+.kaart-voertuigen { margin: 2px 0 6px; padding-left: 4px; list-style: none; max-height: 160px; overflow: auto; }
+.kaart-p { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 5px; background: #2A6BAE; color: #fff;
+           font-weight: 800; font-size: 13px; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.45); }
+.kaart-p.p-verboden { background: #fff; color: #C0392B; font-size: 12px; }
+.kaart-p.p-vergunning { background: #fff; font-size: 12px; }

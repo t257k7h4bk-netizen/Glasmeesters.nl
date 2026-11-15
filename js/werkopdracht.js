@@ -130,6 +130,14 @@ const Werkopdracht = (function () {
       });
     });
 
+    // 2b. Milieuzone / zero-emissiezone op het adres (stap Z)
+    if (typeof Zones !== "undefined" && klus.adres && klus.voertuig) {
+      const plek = (ctx.locaties || {})[adresSleutel(klus.adres)];
+      const z = Zones.controleerKlus(plek, voertuig(klus.voertuig), klus.datum);
+      z.rood.forEach(function (t) { rood.push({ tekst: t, soort: "zone" }); });
+      z.oranje.forEach(function (t) { oranje.push(t); });
+    }
+
     // 3. Rijbewijs: minstens één medewerker moet voertuig (+ aanhanger) mogen besturen
     if (mensen.length && (v || a)) {
       const nodig = [];
@@ -290,7 +298,7 @@ const Werkopdracht = (function () {
             '<div class="veld"><label for="wo-tel">Telefoon klant</label><input id="wo-tel" type="tel" inputmode="tel"></div>' +
             '<div class="veld"><label for="wo-mail">E-mail klant</label><input id="wo-mail" type="email"></div>' +
           '</div>' +
-          '<div class="veld"><label for="wo-adres">Adres van de werkzaamheden</label><input id="wo-adres" class="vol" placeholder="Straat en huisnummer, plaats"><div class="adres-links" id="wo-adres-links"></div></div>' +
+          '<div class="veld"><label for="wo-adres">Adres van de werkzaamheden</label><input id="wo-adres" class="vol" placeholder="Straat en huisnummer, plaats"><div class="adres-links" id="wo-adres-links"></div><div id="wo-adres-info"></div></div>' +
 
           '<h3 class="sectie">Planning</h3>' +
           '<div class="velden-2">' +
@@ -490,6 +498,7 @@ const Werkopdracht = (function () {
       } });
     });
     $("wo-adres").addEventListener("input", function () { tekenAdresLinks(this.value); });
+    $("wo-adres").addEventListener("change", function () { tekenAdresLinks(this.value, true); });
     $("wo-wa-knop").addEventListener("click", function () {
       naWhatsApp = true;
       $("wo-form").requestSubmit();
@@ -554,6 +563,11 @@ const Werkopdracht = (function () {
       if (v.status === "buiten_gebruik") extra = " – niet inzetbaar";
       else if (wegverbod) extra = " – " + (wegverbod.soort === "apk" ? "APK verlopen" : "verzekering verlopen");
       if (!extra) { const b = bezetDoor("voertuig", v.id); if (b) extra = " – bezet " + b.start + "–" + b.eind + " (" + b.klant + ")"; }
+      if (!extra && datumKlus && v.soort !== "aanhanger" && typeof Zones !== "undefined") {
+        const plek = (ctx.locaties || {})[adresSleutel($("wo-adres").value)];
+        const z = Zones.controleerKlus(plek, v, datumKlus);
+        if (z.rood.length) extra = " – ⛔ mag de zone niet in";
+      }
       return '<option value="' + v.id + '"' + (v.id === gekozenId ? " selected" : "") + '>' +
              esc(v.naam + " · " + v.merk + " " + v.type + " · " + v.kenteken + extra) + '</option>';
     };
@@ -834,7 +848,7 @@ const Werkopdracht = (function () {
     $("wo-tel").value = o.telefoon_klant || "";
     $("wo-mail").value = o.email_klant || "";
     $("wo-adres").value = o.adres || "";
-    tekenAdresLinks(o.adres);
+    tekenAdresLinks(o.adres, true);
     $("wo-datum").value = o.datum || "";
     $("wo-start").value = o.start || ctx.dagdelen.ochtend_van;
     $("wo-eind").value = o.eind || ctx.dagdelen.ochtend_tot;
@@ -879,15 +893,35 @@ const Werkopdracht = (function () {
   }
 
   // Route, Street View en kaart bij het adres (fase 6)
-  async function tekenAdresLinks(adres) {
-    const el = $("wo-adres-links");
+  async function tekenAdresLinks(adres, opzoeken) {
+    const el = $("wo-adres-links"), info = $("wo-adres-info");
     if (!el) return;
     adres = (adres || "").trim();
-    if (!adres) { el.innerHTML = ""; return; }
-    const plek = typeof zoekLocatie === "function" ? await zoekLocatie(adres, { alleenBekend: true }) : null;
+    if (!adres) { el.innerHTML = ""; info.innerHTML = ""; return; }
+    const plek = typeof zoekLocatie === "function" ? await zoekLocatie(adres, { alleenBekend: !opzoeken }) : null;
     if ($("wo-adres").value.trim() !== adres) return;
     el.innerHTML = '<a href="' + routeLink(adres) + '" target="_blank" rel="noopener">🧭 Route</a>' +
                    '<a href="' + streetViewLink(adres, plek) + '" target="_blank" rel="noopener">👁 Street View</a>';
+    if (plek && plek.lat) {
+      ctx.locaties = ctx.locaties || {};
+      ctx.locaties[adresSleutel(adres)] = plek;
+    }
+    // Zones en parkeerinfo bij dit adres
+    let html = "";
+    if (plek && plek.lat && typeof Zones !== "undefined") {
+      Zones.op(plek.lat, plek.lon).forEach(function (z) {
+        html += '<div class="adres-info zone">' + (z.type === "ze" ? "🌿 Ligt in zero-emissiezone " : "🏭 Ligt in milieuzone ") + esc(z.naam) +
+                (z.vanaf && z.vanaf > iso(new Date()) ? " (gaat in op " + new Date(z.vanaf + "T12:00").toLocaleDateString("nl-NL") + ")" : "") + '</div>';
+      });
+    }
+    if (plek && plek.lat) {
+      parkeerInDeBuurt(plek, ctx.parkeer || []).forEach(function (p) {
+        html += '<div class="adres-info parkeer">🅿️ <strong>' + esc(parkeerSoortNaam(p.soort)) + '</strong> op ' + p.afstand + ' m' + (p.tekst ? ": " + esc(p.tekst) : "") + '</div>';
+      });
+    }
+    if (plek && plek.benadering) html += '<div class="adres-info">📍 Straat niet gevonden op de kaart: zones en parkeerinfo zijn daardoor niet zeker.</div>';
+    info.innerHTML = html;
+    if (opzoeken) { tekenVoertuigen(); waarschuwingGezien = ""; }
   }
 
   // Link naar de opname waar deze opdracht uit komt (stap 5c)
@@ -950,13 +984,15 @@ const Werkopdracht = (function () {
 
     const open = openBlokkades(o);
     if (open.length) {
-      const alleenBevoegdheid = open.every(function (r) { return r.soort === "bevoegdheid"; });
+      const alleenBevoegdheid = open.every(function (r) { return r.soort === "bevoegdheid" || r.soort === "zone"; });
+      const metZone = open.some(function (r) { return r.soort === "zone"; });
       const isBeheerder = typeof huidigeRol === "function" && huidigeRol() === "beheerder";
       melding("fout", "<strong>Opslaan kan niet:</strong><br>" + open.map(function (r) { return esc(r.tekst); }).join("<br>") +
         (alleenBevoegdheid
           ? (isBeheerder
               ? '<div class="knoppen"><button type="button" class="knop gevaar" id="wo-ophef">Blokkade opheffen (beheerder)</button></div>'
-              : "<br><em>Dit is een wettelijke bevoegdheid. Alleen de beheerder kan deze blokkade opheffen.</em>")
+              : (metZone ? "<br><em>Alleen de beheerder kan deze blokkade opheffen, bijvoorbeeld als er een ontheffing is.</em>"
+                         : "<br><em>Dit is een wettelijke bevoegdheid. Alleen de beheerder kan deze blokkade opheffen.</em>"))
           : ""));
       const knop = $("wo-ophef");
       if (knop) knop.onclick = function () {
@@ -1031,6 +1067,11 @@ const Werkopdracht = (function () {
     ctx.gereedschap = await Opslag.alle("gereedschap");
     const d = await Opslag.haal("instellingen", "dagdelen");
     if (d) ctx.dagdelen = d;
+    // Stap Z: bekende plekken, parkeerinfo en zones
+    ctx.locaties = {};
+    (await Opslag.alle("locaties")).forEach(function (l) { if (l.lat) ctx.locaties[l.id] = l; });
+    ctx.parkeer = await Opslag.alle("parkeerinfo");
+    if (typeof Zones !== "undefined") await Zones.laad({ alleenOpgeslagen: true });
     return ctx;
   }
 

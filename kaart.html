@@ -33,6 +33,9 @@
       </select>
       <label class="vinkje" id="toon-klussen-label"><input type="checkbox" id="toon-klussen" checked> Werkopdrachten</label>
       <label class="vinkje" id="toon-opnames-label"><input type="checkbox" id="toon-opnames" checked> Opnames</label>
+      <label class="vinkje"><input type="checkbox" id="toon-zones" checked> <span class="legenda-vlak ze"></span>Zones</label>
+      <label class="vinkje"><input type="checkbox" id="toon-parkeren" checked> 🅿️ Parkeren</label>
+      <button type="button" class="knop tweede klein" id="parkeer-nieuw" hidden>+ Parkeerinfo</button>
     </div>
 
     <div class="melding" id="melding"></div>
@@ -49,11 +52,27 @@
     </div>
   </main>
 
+  <!-- Parkeerinfo toevoegen -->
+  <dialog id="parkeer-venster" class="venster">
+    <form id="parkeer-form" method="dialog">
+      <div class="venster-kop"><h2>Parkeerinfo</h2><button type="button" class="sluit" data-parkeer-sluit aria-label="Sluiten">✕</button></div>
+      <div class="venster-inhoud">
+        <div class="veld"><label for="p-soort">Soort</label><select id="p-soort"></select></div>
+        <div class="veld"><label for="p-tekst">Toelichting</label><textarea id="p-tekst" rows="3" class="vol" placeholder="Bijv. laad- en losplek tot 11.00 uur, sleutel slagboom bij de buren"></textarea></div>
+      </div>
+      <div class="venster-voet"><span class="ruimte"></span>
+        <button type="button" class="knop tweede" data-parkeer-sluit>Annuleren</button>
+        <button type="submit" class="knop">Opslaan</button>
+      </div>
+    </form>
+  </dialog>
+
   <script src="lib/leaflet/leaflet.js"></script>
   <script src="js/layout.js"></script>
   <script src="js/opslag.js"></script>
   <script src="js/keuzelijsten.js"></script>
   <script src="js/voorbeeld.js"></script>
+  <script src="js/zones.js"></script>
   <script src="js/kaart.js"></script>
 </body>
 </html>

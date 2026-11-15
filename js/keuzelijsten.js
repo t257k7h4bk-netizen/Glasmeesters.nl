@@ -491,3 +491,23 @@ async function zoekLocatie(adres, opties) {
 async function zetLocatieHandmatig(adres, lat, lon) {
   return Opslag.bewaar("locaties", { id: adresSleutel(adres), adres: adres, lat: lat, lon: lon, handmatig: true, bron: "handmatig" });
 }
+
+// ---------- Parkeerinfo van kantoor (stap Z) ----------
+const PARKEER_SOORTEN = [
+  { code: "laden",     naam: "Laad- en losplek",                 icoon: "🅿️" },
+  { code: "parkeren",  naam: "Hier kan de bus parkeren",          icoon: "🅿️" },
+  { code: "vergunning", naam: "Vergunning of ontheffing nodig",  icoon: "📄" },
+  { code: "verboden",  naam: "Niet parkeren / bus past niet",     icoon: "⛔" },
+  { code: "overig",    naam: "Overige parkeerinfo",               icoon: "ℹ️" }
+];
+function parkeerSoortNaam(code) { const s = PARKEER_SOORTEN.find(function (x) { return x.code === code; }); return s ? s.naam : "Parkeerinfo"; }
+function afstandMeter(lat1, lon1, lat2, lon2) {
+  const r = Math.PI / 180, R = 6371000;
+  const a = Math.sin((lat2 - lat1) * r / 2) ** 2 + Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin((lon2 - lon1) * r / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+function parkeerInDeBuurt(plek, lijst, straal) {
+  if (!plek || !plek.lat) return [];
+  return (lijst || []).map(function (p) { return Object.assign({}, p, { afstand: Math.round(afstandMeter(plek.lat, plek.lon, p.lat, p.lon)) }); })
+    .filter(function (p) { return p.afstand <= (straal || 300); }).sort(function (a, b) { return a.afstand - b.afstand; });
+}

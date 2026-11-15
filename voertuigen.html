@@ -69,6 +69,18 @@
         </div>
         <div class="veld"><label for="v-bijz">Bijzonderheden</label><textarea id="v-bijz" rows="2" style="width:100%"></textarea></div>
 
+        <h3 class="sectie">Milieuzones en zero-emissiezones</h3>
+        <p class="uitleg">Deze gegevens bepalen of het voertuig een milieuzone of zero-emissiezone in mag. Ze staan op het kentekenbewijs,
+          of tik op <strong>Ophalen bij de RDW</strong> (gratis open data, werkt met het kenteken hierboven).</p>
+        <div class="velden-2">
+          <div class="veld"><label for="v-emissie">Emissieklasse</label><select id="v-emissie"></select></div>
+          <div class="veld"><label for="v-categorie">Soort volgens kenteken</label><select id="v-categorie"></select></div>
+          <div class="veld"><label for="v-det">Datum eerste toelating</label><input id="v-det" type="date"></div>
+          <div class="veld"><label>&nbsp;</label><button type="button" class="knop tweede" id="v-rdw">🔎 Ophalen bij de RDW</button></div>
+        </div>
+        <div class="melding" id="v-rdw-melding"></div>
+        <div class="zone-toegang" id="v-zones"></div>
+
         <h3 class="sectie">Kilometerstand en onderhoud</h3>
         <div class="velden-2">
           <div class="veld"><label for="v-km">Huidige kilometerstand</label><input id="v-km" type="number" inputmode="numeric" min="0"></div>
@@ -122,6 +134,7 @@
   <script src="js/opslag.js"></script>
   <script src="js/keuzelijsten.js"></script>
   <script src="js/voorbeeld.js"></script>
+  <script src="js/zones.js"></script>
   <script src="js/voertuigen.js"></script>
 </body>
 </html>

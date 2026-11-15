@@ -656,3 +656,16 @@ input:disabled, select:disabled, textarea:disabled { background: var(--achtergro
 .adres-links { display: flex; gap: 16px; margin-top: 6px; font-size: 15px; }
 .adres-links:empty { display: none; }
 .adres-links a { font-weight: 600; text-decoration: none; }
+
+/* ---------- Zones (stap Z) ---------- */
+.zone-toegang { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.zone-regel { display: flex; gap: 8px; align-items: baseline; padding: 8px 12px; border-radius: 8px; background: var(--achtergrond); }
+.zone-regel.groen { background: #E7F4EC; }
+.zone-regel.oranje { background: #FDF1E2; }
+.zone-regel.rood { background: #FBE9E7; }
+.adres-info { margin-top: 6px; padding: 6px 10px; border-radius: 8px; background: var(--achtergrond); font-size: 14px; }
+.adres-info.zone { background: #E7F4EC; color: #1D5E3A; }
+.adres-info.parkeer { background: #EAF1F7; color: var(--blauw-donker); }
+.tarief-regel { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--lijn); }
+.tarief-regel label { flex: 1; }
+.kaart-item-extra { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; font-size: 13px; }

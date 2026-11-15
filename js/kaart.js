@@ -33,6 +33,11 @@
   await Voorbeeld.zorgVoorOpname();
 
   let klussen = await Opslag.alle("klussen");
+  const voertuigen = await Opslag.alle("voertuigen");
+  let parkeer = await Opslag.alle("parkeerinfo");
+  await Zones.laad();
+  const magParkeer = ["beheerder", "planner", "opnemer", "administratie"].indexOf(rol) !== -1;
+  if (magParkeer) $("parkeer-nieuw").hidden = false;
   const opnames = await Opslag.alle("opnames");
   const medewerkers = await Opslag.alle("medewerkers");
 
@@ -60,6 +65,8 @@
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
   }).addTo(kaart);
+  const zoneLaag = L.layerGroup().addTo(kaart);
+  const parkeerLaag = L.layerGroup().addTo(kaart);
   const laag = L.layerGroup().addTo(kaart);
   const punten = {};          // id → marker
   let plaatsVoor = null;      // adres dat handmatig op de kaart wordt gezet
@@ -87,7 +94,7 @@
         return binnen(k.datum);
       }).forEach(function (k) {
         const s = STATUSSEN.find(function (x) { return x.code === (k.status || "gepland"); }) || {};
-        lijst.push({ soort: "klus", id: k.id, adres: k.adres, titel: k.klant, nummer: k.nummer, datum: k.datum || "", tijd: k.datum ? k.start + "–" + k.eind : "",
+        lijst.push({ soort: "klus", id: k.id, adres: k.adres, voertuig: k.voertuig, titel: k.klant, nummer: k.nummer, datum: k.datum || "", tijd: k.datum ? k.start + "–" + k.eind : "",
                      sub: (k.werkzaamheden || "").split("\n")[0], wie: naamLijst(k.medewerkers), kleur: KLEUR[s.kleur] || KLEUR.blauw, status: s.naam || "",
                      link: "werkopdrachten.html?id=" + encodeURIComponent(k.id) });
       });
@@ -130,8 +137,85 @@
       (item.sub ? '<div class="zacht">' + esc(item.sub) + '</div>' : "") +
       (item.wie ? '<div>👷 ' + esc(item.wie) + '</div>' : "") +
       (plek && plek.benadering ? '<div class="kaart-let-op">Straat niet gevonden: de stip staat in het midden van de plaats.</div>' : "") +
+      zoneTekst(item, plek) + parkeerTekst(plek) +
       knoppen(item, plek) + '</div>';
   }
+
+  // ---------- Zones en parkeren bij een opdracht ----------
+  function zoneTekst(item, plek) {
+    if (!plek || !plek.lat || plek.benadering) return "";
+    const zones = Zones.op(plek.lat, plek.lon);
+    if (!zones.length) return "";
+    let html = zones.map(function (z) { return '<div class="kaart-zone">' + (z.type === "ze" ? "🌿 Zero-emissiezone " : "🏭 Milieuzone ") + esc(z.naam) + '</div>'; }).join("");
+    if (item.soort === "klus") {
+      const v = voertuigen.find(function (x) { return x.id === item.voertuig; });
+      if (!v) html += '<div class="kaart-let-op">Nog geen voertuig gekozen: kies een bus die de zone in mag.</div>';
+      else {
+        const c = Zones.controleerKlus(plek, v, item.datum || Werkdag());
+        if (c.rood.length) html += '<div class="kaart-fout">⛔ ' + esc(c.rood[0]) + '</div>';
+        else if (c.oranje.length) html += '<div class="kaart-let-op">⚠️ ' + esc(c.oranje[0]) + '</div>';
+        else html += '<div class="kaart-goed">✅ ' + esc(v.naam) + ' mag de zone in.</div>';
+      }
+    }
+    return html;
+  }
+  function Werkdag() { return iso(new Date()); }
+  function parkeerTekst(plek) {
+    const lijst = parkeerInDeBuurt(plek, parkeer);
+    return lijst.slice(0, 3).map(function (p) { return '<div class="kaart-parkeer">🅿️ ' + esc(parkeerSoortNaam(p.soort)) + ' (' + p.afstand + ' m)' + (p.tekst ? ': ' + esc(p.tekst) : "") + '</div>'; }).join("");
+  }
+
+  // ---------- Zones tekenen ----------
+  function tekenZones() {
+    zoneLaag.clearLayers();
+    if (!$("toon-zones").checked) return;
+    const vandaag = iso(new Date());
+    Zones.alle().forEach(function (z) {
+      const gaatIn = z.vanaf && z.vanaf > vandaag;
+      const kleur = z.type === "ze" ? "#2E8B57" : z.type === "milieu" ? "#C2412F" : "#7B4FA0";
+      const vlak = L.geoJSON({ type: "Feature", geometry: z.geometry }, {
+        style: { color: kleur, weight: 2, opacity: 0.9, fillColor: kleur, fillOpacity: gaatIn ? 0.05 : 0.12, dashArray: gaatIn || z.type === "milieu" ? "6 5" : null }
+      });
+      const wagens = voertuigen.filter(function (v) { return v.soort !== "aanhanger" && v.status !== "buiten_gebruik"; })
+        .sort(function (a, b) { return a.naam.localeCompare(b.naam, "nl", { numeric: true }); });
+      const regels = wagens.map(function (v) {
+        const t = Zones.toegang(v, z, vandaag);
+        return '<li>' + (t.mag === false ? "⛔" : t.mag === null ? "❔" : t.tot ? "⏳" : "✅") + " " + esc(v.naam) +
+               (t.mag === true && t.tot ? ' <span class="zacht">tot ' + new Date(t.tot + "T12:00").toLocaleDateString("nl-NL") + '</span>' : "") + '</li>';
+      }).join("");
+      vlak.bindPopup('<div class="kaart-popup"><strong>' + (z.type === "ze" ? "Zero-emissiezone" : z.type === "milieu" ? "Milieuzone" : "Zone") + ' ' + esc(z.naam) + '</strong>' +
+        (z.gemeente ? '<div class="zacht">' + esc(z.gemeente) + '</div>' : "") +
+        (z.vanaf ? '<div>' + (gaatIn ? "Gaat in op " : "Geldt sinds ") + new Date(z.vanaf + "T12:00").toLocaleDateString("nl-NL") + '</div>' : "") +
+        (z.type === "ze" ? '<div class="zacht">Geldt voor bestel- en vrachtauto\'s, niet voor personenauto\'s.</div>' : "") +
+        '<div style="margin-top:4px"><strong>Onze voertuigen vandaag:</strong></div><ul class="kaart-voertuigen">' + regels + '</ul>' +
+        (z.url ? '<a href="' + esc(z.url) + '" target="_blank" rel="noopener">Meer informatie</a>' : "") + '</div>', { maxWidth: 300 });
+      // Bij "plek kiezen" moet een tik in een zone gewoon als tik op de kaart tellen
+      vlak.on("click", function (e) { if (plaatsVoor) kaart.fire("click", { latlng: e.latlng }); });
+      vlak.addTo(zoneLaag);
+    });
+  }
+
+  // ---------- Parkeerinfo tekenen ----------
+  function tekenParkeren() {
+    parkeerLaag.clearLayers();
+    if (!$("toon-parkeren").checked) return;
+    parkeer.forEach(function (p) {
+      const s = PARKEER_SOORTEN.find(function (x) { return x.code === p.soort; }) || PARKEER_SOORTEN[4];
+      const m = L.marker([p.lat, p.lon], { icon: L.divIcon({ className: "kaart-pin-houder", html: '<span class="kaart-p p-' + p.soort + '">' + (p.soort === "verboden" ? "⛔" : p.soort === "vergunning" ? "📄" : "P") + '</span>', iconSize: [24, 24], iconAnchor: [12, 12] }), title: s.naam });
+      m.bindPopup('<div class="kaart-popup"><strong>' + esc(s.naam) + '</strong>' + (p.tekst ? '<div>' + esc(p.tekst) + '</div>' : "") +
+        '<div class="zacht">Toegevoegd ' + (p.aangemaakt_op ? new Date(p.aangemaakt_op).toLocaleDateString("nl-NL") : "") + (p.door ? " door " + esc(ROLLEN[p.door] || p.door) : "") + '</div>' +
+        (magParkeer ? '<div class="kaart-knoppen"><button type="button" class="knop tweede klein" data-parkeer-weg="' + p.id + '">Verwijderen</button></div>' : "") + '</div>');
+      m.addTo(parkeerLaag);
+    });
+  }
+  document.addEventListener("click", async function (e) {
+    const weg = e.target.closest("[data-parkeer-weg]");
+    if (!weg) return;
+    if (!confirm("Deze parkeerinfo verwijderen?")) return;
+    await Opslag.verwijder("parkeerinfo", weg.dataset.parkeerWeg);
+    parkeer = await Opslag.alle("parkeerinfo");
+    kaart.closePopup(); tekenParkeren(); teken();
+  });
 
   // ---------- Tekenen ----------
   let bezig = 0;
@@ -187,7 +271,11 @@
         grenzen.push([plek.lat, plek.lon]);
         if (status) status.innerHTML = plek.benadering ? '📍 Ongeveer (straat niet gevonden) · <button type="button" class="link-knop" data-plaats="' + esc(i.adres) + '">zelf plaatsen</button>'
                                                        : '📍 Op de kaart' + (plek.handmatig ? " (zelf geplaatst)" : "") + ' · <button type="button" class="link-knop" data-plaats="' + esc(i.adres) + '">verplaatsen</button>';
-        if (vak) vak.querySelector(".kaart-knoppen").outerHTML = knoppen(i, plek);
+        if (vak) {
+          vak.querySelector(".kaart-knoppen").outerHTML = knoppen(i, plek);
+          const extra = zoneTekst(i, plek) + parkeerTekst(plek);
+          if (extra) status.insertAdjacentHTML("afterend", '<div class="kaart-item-extra">' + extra + '</div>');
+        }
       } else {
         if (plek && plek.fout) fouten++; else nietGevonden.push(i);
         if (status) status.innerHTML = (plek && plek.fout ? "Niet opgezocht: geen verbinding." : "Adres niet gevonden.") +
@@ -224,15 +312,46 @@
   }
   function stopPlaatsen() { plaatsVoor = null; $("plaatsen-balk").hidden = true; $("kaart").classList.remove("kies-plek"); }
   $("plaatsen-stop").addEventListener("click", stopPlaatsen);
+  let parkeerPlek = null;
+  $("p-soort").innerHTML = PARKEER_SOORTEN.map(function (s) { return '<option value="' + s.code + '">' + s.icoon + " " + s.naam + '</option>'; }).join("");
+  $("parkeer-nieuw").addEventListener("click", function () {
+    plaatsVoor = "__parkeer__";
+    $("plaatsen-tekst").innerHTML = "Tik op de kaart waar de <strong>parkeerinfo</strong> hoort. Zoom eerst ver genoeg in.";
+    $("plaatsen-balk").hidden = false;
+    $("kaart").classList.add("kies-plek");
+    $("kaart").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  document.querySelectorAll("[data-parkeer-sluit]").forEach(function (k) { k.addEventListener("click", function () { $("parkeer-venster").close(); }); });
+  $("parkeer-form").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    if (!parkeerPlek) return;
+    await Opslag.bewaar("parkeerinfo", { lat: parkeerPlek.lat, lon: parkeerPlek.lon, soort: $("p-soort").value, tekst: $("p-tekst").value.trim(), door: rol });
+    parkeer = await Opslag.alle("parkeerinfo");
+    $("parkeer-venster").close();
+    tekenParkeren(); teken();
+    melding("goed", "De parkeerinfo is bewaard. Iedereen ziet hem bij opdrachten in de buurt (binnen 300 meter).");
+  });
+
   kaart.on("click", async function (e) {
     if (!plaatsVoor) return;
+    if (plaatsVoor === "__parkeer__") {
+      stopPlaatsen();
+      setTimeout(function () { kaart.closePopup(); }, 0);
+      parkeerPlek = { lat: Math.round(e.latlng.lat * 1e6) / 1e6, lon: Math.round(e.latlng.lng * 1e6) / 1e6 };
+      $("p-soort").value = "laden"; $("p-tekst").value = "";
+      $("parkeer-venster").showModal();
+      return;
+    }
     const adres = plaatsVoor;
     stopPlaatsen();
+    setTimeout(function () { kaart.closePopup(); }, 0);
     await zetLocatieHandmatig(adres, Math.round(e.latlng.lat * 1e6) / 1e6, Math.round(e.latlng.lng * 1e6) / 1e6);
     await teken();
     melding("goed", "De plek van " + esc(adres) + " is bewaard.");
   });
 
+  $("toon-zones").addEventListener("change", tekenZones);
+  $("toon-parkeren").addEventListener("change", tekenParkeren);
   ["periode", "toon-klussen", "toon-opnames"].forEach(function (id) {
     $(id).addEventListener("change", function () {
       if (id === "periode") { try { localStorage.setItem("gm-kaart-periode", $("periode").value); } catch (e) {} }
@@ -242,5 +361,8 @@
 
   // De kaart moet zijn maat opnieuw bepalen als het scherm draait
   window.addEventListener("resize", function () { kaart.invalidateSize(); });
+  tekenZones();
+  tekenParkeren();
+  if (Zones.info().fout) setTimeout(function () { if (!$("melding").textContent) melding("waarschuwing", esc(Zones.info().fout) + (rol === "beheerder" ? ' Je kunt de zones ook laden onder <a href="beheer.html">Beheer → Zones</a>.' : "")); }, 100);
   teken();
 })();

@@ -64,6 +64,31 @@
           <a href="tarieven.html">💶 Tarieven</a>, zodat ook de administratie ze kan bijhouden.</p>
       </section>
 
+      <!-- Zones -->
+      <section class="kaart">
+        <h2>Milieuzones en zero-emissiezones</h2>
+        <p class="uitleg">De zones komen gratis van het Nationaal Dataportaal Wegverkeer (open data) en worden op dit apparaat bewaard.
+          Ze worden hooguit één keer per dag vanzelf bijgewerkt.</p>
+        <div class="melding zichtbaar info" id="zones-stand">Bezig…</div>
+        <div class="knoppen">
+          <button class="knop" id="zones-bijwerken">Nu bijwerken</button>
+          <button class="knop tweede" id="zones-bestand-knop">Laden uit bestand (GeoJSON)</button>
+          <input type="file" id="zones-bestand" accept=".json,.geojson,application/json" hidden>
+        </div>
+        <p class="uitleg">Lukt bijwerken niet? Open dan dit adres in de browser, bewaar de pagina als bestand en laad dat hier:<br>
+          <code id="zones-bron"></code></p>
+        <div class="melding" id="melding-zones"></div>
+
+        <h3 class="sectie">Toegangsregels</h3>
+        <p class="uitleg">Standaard volgens de landelijke regels (stand november 2026). Pas ze aan als de overheid ze wijzigt.</p>
+        <div class="zone-regels" id="zone-regels"></div>
+        <div class="knoppen">
+          <button class="knop" id="regels-opslaan">Regels opslaan</button>
+          <button class="knop tweede" id="regels-standaard">Terug naar standaard</button>
+        </div>
+        <div class="melding" id="melding-regels"></div>
+      </section>
+
       <!-- Back-up -->
       <section class="kaart">
         <h2>Back-up</h2>
@@ -124,6 +149,7 @@
   <script src="js/keuzelijsten.js"></script>
   <script src="js/voorbeeld.js"></script>
   <script src="js/whatsapp.js"></script>
+  <script src="js/zones.js"></script>
   <script>
   // Alleen uitvoeren als deze rol de pagina mag zien
   if (!document.body.classList.contains("geen-toegang")) {
@@ -237,6 +263,68 @@
       await Opslag.bewaar("instellingen", { id: "opname", minimum_m2: w });
       MINIMUM_M2_PER_RUIT = w;
       toon("melding-minimum", "goed", "Opgeslagen: ruiten kleiner dan " + w.toLocaleString("nl-NL") + " m² worden als " + w.toLocaleString("nl-NL") + " m² berekend.");
+    });
+
+    // ----- Zones -----
+    const REGEL_VELDEN = [
+      ["ze", "bestel_euro5_tot", "Bestelauto Euro 5: toegang tot", "date"],
+      ["ze", "bestel_euro6_tot", "Bestelauto Euro 6: toegang tot", "date"],
+      ["ze", "bestel_euro6_det_voor", "… als het kenteken is afgegeven vóór", "date"],
+      ["ze", "vracht_a_det_van", "Vrachtauto Euro 6, groep A: kenteken vanaf", "date"],
+      ["ze", "vracht_a_det_tot", "… kenteken tot en met", "date"],
+      ["ze", "vracht_a_tot", "… toegang tot", "date"],
+      ["ze", "vracht_b_det_van", "Vrachtauto Euro 6, groep B: kenteken vanaf", "date"],
+      ["ze", "vracht_b_det_tot", "… kenteken tot en met", "date"],
+      ["ze", "vracht_b_tot", "… toegang tot", "date"],
+      ["milieu", "diesel_personen", "Milieuzone: diesel personenauto minimaal Euro", "number"],
+      ["milieu", "diesel_bestel", "Milieuzone: diesel bestelauto minimaal Euro", "number"],
+      ["milieu", "diesel_vracht", "Milieuzone: diesel vrachtauto minimaal Euro", "number"]
+    ];
+    function tekenZoneStand() {
+      const z = Zones.alle(), info = Zones.info();
+      const ze = z.filter(function (x) { return x.type === "ze"; }).length, mz = z.filter(function (x) { return x.type === "milieu"; }).length;
+      const el = document.getElementById("zones-stand");
+      el.className = "melding zichtbaar " + (info.fout ? "waarschuwing" : z.length ? "goed" : "info");
+      el.textContent = (z.length ? z.length + " zones bekend (" + ze + " zero-emissiezones, " + mz + " milieuzones" + (z.length - ze - mz ? ", " + (z.length - ze - mz) + " overig" : "") + ")" +
+        (info.opgehaald_op ? ", bijgewerkt op " + new Date(info.opgehaald_op).toLocaleString("nl-NL") + (info.bron === "bestand" ? " uit een bestand" : "") : "") + "."
+        : "Nog geen zones bekend.") + (info.fout ? " " + info.fout : "");
+    }
+    function tekenRegels() {
+      const r = Zones.regels();
+      document.getElementById("zone-regels").innerHTML = REGEL_VELDEN.map(function (v) {
+        return '<div class="tarief-regel"><label for="zr-' + v[1] + '">' + v[2] + '</label><input id="zr-' + v[1] + '" data-groep="' + v[0] + '" data-veld="' + v[1] + '" type="' + v[3] + '"' +
+               (v[3] === "number" ? ' min="1" max="6" style="width:80px"' : "") + ' value="' + (r[v[0]][v[1]] || "") + '"></div>';
+      }).join("");
+    }
+    document.getElementById("zones-bron").textContent = Zones.BRON;
+    (async function () { await Zones.laad({ alleenOpgeslagen: true }); tekenZoneStand(); tekenRegels(); })();
+    document.getElementById("zones-bijwerken").addEventListener("click", async function () {
+      document.getElementById("zones-stand").textContent = "Bezig met bijwerken…";
+      await Zones.laad({ opnieuw: true });
+      tekenZoneStand();
+    });
+    document.getElementById("zones-bestand-knop").addEventListener("click", function () { document.getElementById("zones-bestand").click(); });
+    document.getElementById("zones-bestand").addEventListener("change", async function (e) {
+      const f = e.target.files[0]; e.target.value = "";
+      if (!f) return;
+      try {
+        const zones = await Zones.laadUitBestand(await f.text());
+        toon("melding-zones", "goed", zones.length + " zones geladen uit " + f.name + ".");
+      } catch (fout) { toon("melding-zones", "fout", "Dit bestand kon niet worden gelezen: " + fout.message); }
+      tekenZoneStand();
+    });
+    document.getElementById("regels-opslaan").addEventListener("click", async function () {
+      const data = { id: "zoneregels", ze: {}, milieu: {} };
+      document.querySelectorAll("#zone-regels input").forEach(function (i) { data[i.dataset.groep][i.dataset.veld] = i.type === "number" ? Number(i.value) : i.value; });
+      await Opslag.bewaar("instellingen", data);
+      await Zones.laadRegels();
+      toon("melding-regels", "goed", "De toegangsregels zijn opgeslagen.");
+    });
+    document.getElementById("regels-standaard").addEventListener("click", async function () {
+      if (!confirm("De toegangsregels terugzetten naar de standaard?")) return;
+      await Opslag.verwijder("instellingen", "zoneregels");
+      await Zones.laadRegels(); tekenRegels();
+      toon("melding-regels", "info", "De standaardregels staan er weer.");
     });
 
     // ----- Logboek -----

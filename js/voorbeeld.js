@@ -471,6 +471,24 @@ const Voorbeeld = (function () {
         vlag.voertuigdetails = true;
         await Opslag.bewaar("instellingen", vlag);
       }
+      // Stap Z: emissieklasse en datum eerste toelating van de voorbeeldvoertuigen (fictief)
+      if (!vlag.zonedetails) {
+        const ZD = {
+          "Bus 1": ["euro6", "2021-03-15"], "Bus 2": ["euro6", "2020-06-02"], "Bus 3": ["euro5", "2015-04-20", 2015],
+          "Bus 4": ["ze", "2023-09-01", 2023, "Elektrisch"], "Bus 5": ["euro6", "2025-02-10", 2025], "Bus 6": ["euro5", "2016-03-08"],
+          "Bakwagen": ["euro6", "2017-06-12"], "Opnamewagen 1": ["ze", "2023-05-01"], "Opnamewagen 2": ["euro6", "2021-07-01"]
+        };
+        for (const v of await Opslag.alle("voertuigen")) {
+          const d = ZD[v.naam];
+          if (!v.voorbeeld || !d || v.emissieklasse) continue;
+          v.emissieklasse = d[0]; v.datum_eerste_toelating = d[1];
+          if (d[2]) v.bouwjaar = d[2];
+          if (d[3]) v.brandstof = d[3];
+          await Opslag.bewaar("voertuigen", v);
+        }
+        vlag.zonedetails = true;
+        await Opslag.bewaar("instellingen", vlag);
+      }
 
       // Fase 4: gereedschapdetails aanvullen (ook in eerder geladen gegevens)
       const vlag2 = (await Opslag.haal("instellingen", "voorbeeld")) || { id: "voorbeeld" };

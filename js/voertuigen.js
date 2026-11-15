@@ -30,6 +30,9 @@
   $("v-rijbewijs").innerHTML = BEVOEGDHEDEN.filter(function (b) { return b.soort === "Rijbewijs"; })
     .map(function (b) { return '<option value="' + b.code + '">' + b.naam + '</option>'; }).join("");
   $("v-status").innerHTML = Object.keys(VOERTUIG_STATUS).map(function (k) { return '<option value="' + k + '">' + VOERTUIG_STATUS[k] + '</option>'; }).join("");
+  $("v-emissie").innerHTML = Zones.EMISSIEKLASSEN.map(function (e) { return '<option value="' + e.code + '">' + e.naam + '</option>'; }).join("");
+  $("v-categorie").innerHTML = '<option value="">Volgens soort (automatisch)</option>' + Object.keys(Zones.CATEGORIEEN).map(function (k) { return '<option value="' + k + '">' + Zones.CATEGORIEEN[k] + '</option>'; }).join("");
+  Zones.laadRegels();
   $("h-soort").innerHTML = ONDERHOUD_SOORTEN.map(function (s) { return "<option>" + s + "</option>"; }).join("");
 
   function ergste(meldingen) {
@@ -137,6 +140,9 @@
     zet("v-naam", g.naam); zet("v-soort", g.soort); zet("v-merk", g.merk); zet("v-type", g.type); zet("v-kenteken", g.kenteken);
     zet("v-bouwjaar", g.bouwjaar); zet("v-brandstof", g.brandstof || "Diesel"); zet("v-rijbewijs", g.vereist_rijbewijs || "rijbewijs_b");
     zet("v-status", g.status || "actief"); zet("v-bijz", g.bijzonderheden);
+    zet("v-emissie", g.emissieklasse || ""); zet("v-categorie", g.rdw_categorie || ""); zet("v-det", g.datum_eerste_toelating);
+    $("v-rdw-melding").className = "melding"; $("v-rdw").hidden = !magBewerken;
+    tekenZoneToegang(g);
     $("v-verantwoordelijke").innerHTML = '<option value="">– niemand –</option>' + medewerkers.filter(function (m) { return m.actief; })
       .sort(function (a, b) { return a.voornaam.localeCompare(b.voornaam, "nl"); })
       .map(function (m) { return '<option value="' + m.id + '">' + esc(m.voornaam + " " + m.achternaam) + '</option>'; }).join("");
@@ -164,9 +170,69 @@
       bijzonderheden: $("v-bijz").value.trim(), kilometerstand: getal($("v-km").value), onderhoud_interval_km: getal($("v-interval").value),
       datum_laatste_onderhoud: $("v-laatste-datum").value, km_laatste_onderhoud: getal($("v-laatste-km").value),
       volgende_onderhoud: $("v-volgende").value, apk_tot: $("v-apk").value, verzekeraar: $("v-verzekeraar").value.trim(),
-      polisnummer: $("v-polis").value.trim(), verzekering_tot: $("v-verzekering").value
+      polisnummer: $("v-polis").value.trim(), verzekering_tot: $("v-verzekering").value,
+      emissieklasse: $("v-emissie").value, rdw_categorie: $("v-categorie").value, datum_eerste_toelating: $("v-det").value
     });
   }
+
+  // ---------- Zones: wat mag dit voertuig? ----------
+  function tekenZoneToegang(v) {
+    const el = $("v-zones");
+    if (!v || v.soort === "aanhanger") { el.innerHTML = ""; return; }
+    const vandaag = iso(new Date());
+    const ze = Zones.toegang(v, { type: "ze", naam: "" }, vandaag);
+    const mz = Zones.toegang(v, { type: "milieu", naam: "" }, vandaag);
+    const regel = function (titel, t) {
+      const soort = t.mag === false ? "rood" : t.mag === null ? "oranje" : t.tot && (new Date(t.tot) - new Date()) / 86400000 <= 180 ? "oranje" : "groen";
+      const tekst = t.mag === false ? "mag er niet in" + (t.tot ? " (sinds " + datumNL(t.tot) + ")" : "")
+                  : t.mag === null ? "onbekend – vul emissieklasse en datum eerste toelating in"
+                  : t.tot ? "mag erin tot " + datumNL(t.tot) : "mag erin";
+      return '<div class="zone-regel ' + soort + '"><span>' + (soort === "rood" ? "⛔" : soort === "oranje" ? "⚠️" : "✅") + '</span><strong>' + titel + ':</strong> ' + esc(tekst) + '</div>';
+    };
+    el.innerHTML = regel("Zero-emissiezones", ze) + regel("Milieuzones", mz);
+  }
+  $("formulier").addEventListener("change", function () { tekenZoneToegang(lees()); });
+
+  // ---------- Gegevens ophalen bij de RDW (open data, gratis) ----------
+  function romeins(x) { const m = { I: 1, II: 2, III: 3, IV: 4, V: 5, VI: 6 }; return m[String(x).toUpperCase()] || Number(x) || null; }
+  $("v-rdw").addEventListener("click", async function () {
+    const meld = function (soort, tekst) { $("v-rdw-melding").className = "melding zichtbaar " + soort; $("v-rdw-melding").textContent = tekst; };
+    const k = $("v-kenteken").value.replace(/[^a-z0-9]/gi, "").toUpperCase();
+    if (k.length < 6) { meld("fout", "Vul eerst het kenteken in."); return; }
+    meld("info", "Bezig met ophalen bij de RDW…");
+    try {
+      const haal = function (set) { return fetch("https://opendata.rdw.nl/resource/" + set + ".json?kenteken=" + k).then(function (r) { if (!r.ok) throw new Error("foutcode " + r.status); return r.json(); }); };
+      const [voertuig, brandstof] = await Promise.all([haal("m9d7-ebf2"), haal("8ys7-d773")]);
+      if (!voertuig.length) { meld("waarschuwing", "Kenteken " + k + " is niet gevonden bij de RDW. (De voorbeeldkentekens bestaan niet echt.)"); return; }
+      const a = voertuig[0], gewijzigd = [];
+      const zet = function (id, w, label) { if (w && $(id).value !== String(w)) { $(id).value = w; gewijzigd.push(label); } };
+      const datum = function (d) { return d && /^\d{8}$/.test(d) ? d.slice(0, 4) + "-" + d.slice(4, 6) + "-" + d.slice(6, 8) : ""; };
+      const det = datum(a.datum_eerste_toelating);
+      zet("v-det", det, "datum eerste toelating");
+      if (!$("v-merk").value) zet("v-merk", a.merk ? a.merk.charAt(0) + a.merk.slice(1).toLowerCase() : "", "merk");
+      if (!$("v-type").value) zet("v-type", a.handelsbenaming || "", "type");
+      if (!$("v-bouwjaar").value && det) zet("v-bouwjaar", det.slice(0, 4), "bouwjaar");
+      zet("v-apk", datum(a.vervaldatum_apk), "APK-datum");
+      const cat = /^N1/.test(a.europese_voertuigcategorie || "") ? "bestel" : /^N[23]/.test(a.europese_voertuigcategorie || "") ? "vracht" : /^M1/.test(a.europese_voertuigcategorie || "") ? "personen" : "";
+      zet("v-categorie", cat, "soort volgens kenteken");
+      const soorten = brandstof.map(function (b) { return String(b.brandstof_omschrijving || "").toLowerCase(); });
+      const elektrisch = soorten.some(function (s) { return /elektr/.test(s); });
+      const brand = soorten.length > 1 && elektrisch ? "Hybride" : elektrisch ? "Elektrisch" : /diesel/.test(soorten[0] || "") ? "Diesel" : /benzine/.test(soorten[0] || "") ? "Benzine" : /lpg/.test(soorten[0] || "") ? "LPG" : "";
+      zet("v-brandstof", brand, "brandstof");
+      let n = null;
+      brandstof.forEach(function (b) {
+        const m = String(b.uitlaatemissieniveau || "").match(/EURO\s*([IVX]+|\d)/i);
+        const x = m ? romeins(m[1]) : (String(b.emissiecode_omschrijving || "").match(/^\d/) ? Number(String(b.emissiecode_omschrijving)[0]) : null);
+        if (x && (n === null || x > n)) n = x;
+      });
+      const kl = brand === "Elektrisch" ? "ze" : n === null ? "" : n <= 4 ? "euro4" : n === 5 ? "euro5" : "euro6";
+      zet("v-emissie", kl, "emissieklasse");
+      tekenMeldingen(lees()); tekenZoneToegang(lees());
+      meld("goed", gewijzigd.length ? "Opgehaald bij de RDW en ingevuld: " + gewijzigd.join(", ") + ". Vergeet niet op te slaan." : "Opgehaald bij de RDW: alles klopte al.");
+    } catch (e) {
+      meld("fout", "Ophalen bij de RDW is niet gelukt (" + (e.message || "geen verbinding") + "). Vul de gegevens zelf in vanaf het kentekenbewijs.");
+    }
+  });
 
   // Live bijwerken van de meldingen bovenaan terwijl je typt
   $("formulier").addEventListener("change", function () { tekenMeldingen(lees()); });
