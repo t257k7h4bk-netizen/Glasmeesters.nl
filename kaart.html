@@ -8,18 +8,52 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="img/icoon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="img/icoon-180.png">
+  <link rel="stylesheet" href="lib/leaflet/leaflet.css">
   <link rel="stylesheet" href="css/stijl.css">
+  <link rel="stylesheet" href="css/kaart.css">
 </head>
 <body data-pagina="kaart">
 
   <main class="inhoud">
-    <h1>Kaart</h1>
-    <p class="ondertitel">Alle projecten en klussen op de kaart, met route en Street View.</p>
-    <div class="binnenkort">
-      Dit onderdeel bouwen we in <strong>fase 6</strong>.
+    <div class="paginakop">
+      <div>
+        <h1 id="titel">Kaart</h1>
+        <p class="ondertitel" id="samenvatting">Bezig met laden…</p>
+      </div>
+      <a class="knop" id="dagroute" href="#" target="_blank" rel="noopener" hidden>🧭 Route van de dag</a>
+    </div>
+
+    <div class="filterbalk kaart-filters">
+      <select id="periode" aria-label="Periode">
+        <option value="vandaag">Vandaag</option>
+        <option value="morgen">Morgen</option>
+        <option value="week">Deze week</option>
+        <option value="volgende">Volgende week</option>
+        <option value="open">Alles wat nog open staat</option>
+      </select>
+      <label class="vinkje" id="toon-klussen-label"><input type="checkbox" id="toon-klussen" checked> Werkopdrachten</label>
+      <label class="vinkje" id="toon-opnames-label"><input type="checkbox" id="toon-opnames" checked> Opnames</label>
+    </div>
+
+    <div class="melding" id="melding"></div>
+
+    <div class="kaart-indeling">
+      <div class="kaart-vak">
+        <div id="kaart" role="region" aria-label="Kaart met klussen"></div>
+        <div class="kaart-plaatsen" id="plaatsen-balk" hidden>
+          <span id="plaatsen-tekst"></span>
+          <button type="button" class="knop tweede klein" id="plaatsen-stop">Annuleren</button>
+        </div>
+      </div>
+      <div class="kaart-lijst" id="lijst"></div>
     </div>
   </main>
 
+  <script src="lib/leaflet/leaflet.js"></script>
   <script src="js/layout.js"></script>
+  <script src="js/opslag.js"></script>
+  <script src="js/keuzelijsten.js"></script>
+  <script src="js/voorbeeld.js"></script>
+  <script src="js/kaart.js"></script>
 </body>
 </html>

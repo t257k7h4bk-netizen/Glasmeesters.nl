@@ -290,7 +290,7 @@ const Werkopdracht = (function () {
             '<div class="veld"><label for="wo-tel">Telefoon klant</label><input id="wo-tel" type="tel" inputmode="tel"></div>' +
             '<div class="veld"><label for="wo-mail">E-mail klant</label><input id="wo-mail" type="email"></div>' +
           '</div>' +
-          '<div class="veld"><label for="wo-adres">Adres van de werkzaamheden</label><input id="wo-adres" class="vol" placeholder="Straat en huisnummer, plaats"></div>' +
+          '<div class="veld"><label for="wo-adres">Adres van de werkzaamheden</label><input id="wo-adres" class="vol" placeholder="Straat en huisnummer, plaats"><div class="adres-links" id="wo-adres-links"></div></div>' +
 
           '<h3 class="sectie">Planning</h3>' +
           '<div class="velden-2">' +
@@ -489,6 +489,7 @@ const Werkopdracht = (function () {
         if (ctx.naCalculatie) ctx.naCalculatie(k);
       } });
     });
+    $("wo-adres").addEventListener("input", function () { tekenAdresLinks(this.value); });
     $("wo-wa-knop").addEventListener("click", function () {
       naWhatsApp = true;
       $("wo-form").requestSubmit();
@@ -833,6 +834,7 @@ const Werkopdracht = (function () {
     $("wo-tel").value = o.telefoon_klant || "";
     $("wo-mail").value = o.email_klant || "";
     $("wo-adres").value = o.adres || "";
+    tekenAdresLinks(o.adres);
     $("wo-datum").value = o.datum || "";
     $("wo-start").value = o.start || ctx.dagdelen.ochtend_van;
     $("wo-eind").value = o.eind || ctx.dagdelen.ochtend_tot;
@@ -874,6 +876,18 @@ const Werkopdracht = (function () {
     $("wo-foto").disabled = false; $("wo-document").disabled = false;
     document.querySelectorAll("#wo-voertuig, #wo-aanhanger").forEach(function (el) { el.disabled = !ctx.magBewerken; });
     $("werkopdracht").showModal();
+  }
+
+  // Route, Street View en kaart bij het adres (fase 6)
+  async function tekenAdresLinks(adres) {
+    const el = $("wo-adres-links");
+    if (!el) return;
+    adres = (adres || "").trim();
+    if (!adres) { el.innerHTML = ""; return; }
+    const plek = typeof zoekLocatie === "function" ? await zoekLocatie(adres, { alleenBekend: true }) : null;
+    if ($("wo-adres").value.trim() !== adres) return;
+    el.innerHTML = '<a href="' + routeLink(adres) + '" target="_blank" rel="noopener">🧭 Route</a>' +
+                   '<a href="' + streetViewLink(adres, plek) + '" target="_blank" rel="noopener">👁 Street View</a>';
   }
 
   // Link naar de opname waar deze opdracht uit komt (stap 5c)

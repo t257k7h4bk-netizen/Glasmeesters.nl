@@ -25,6 +25,8 @@ glasopnames, voertuigen en gereedschap in één programma.
 | `js/omzetten.js` | Opname met één knop omzetten naar een werkopdracht |
 | `js/calculatie.js` | Calculatie per werkopdracht: kostprijs, echte inkoop, marge, verkoopprijs, factuur en nettowinst |
 | `financieel.html`, `js/financieel.js`, `css/financieel.css` | Omzet, kosten en winst per week, maand en jaar |
+| `kaart.html`, `js/kaart.js`, `css/kaart.css` | Kaart met opdrachten en opnames, route en Street View |
+| `lib/leaflet/` | Kaartbibliotheek Leaflet 1.9.4 (BSD-licentie, zie LICENSE) |
 | `tarieven.html` | Tarievenblad (uurloon, glas, materialen, huur, vervoer, marge, btw) |
 | `opname-pdf.html`, `js/opname-pdf.js`, `css/pdf.css` | Opnameformulier op A4, te bewaren als PDF |
 | `beheer.html` | Instellingen (dagdelen), back-up downloaden/terugzetten, alles wissen |
@@ -55,6 +57,8 @@ glasopnames, voertuigen en gereedschap in één programma.
 - [x] Stap C1 – Rol Administratie, tarievenblad, calculatie per werkopdracht
 - [x] Stap C2 – Overzicht winst per week, maand en jaar
 - [x] Stap C3 – Nij Begun: maximumprijzen, subsidie en eigen bijdrage, afvinklijst
+- [x] Fase 6 – Kaart (OpenStreetMap), route en Street View via Google Maps-links (gratis)
+- [ ] Fase 7 – Testen, overstap naar online opslag met echt inloggen, handleiding
 
 Tijdens het bouwen worden gegevens alleen lokaal in de browser opgeslagen en gebruiken we
 uitsluitend fictieve gegevens.

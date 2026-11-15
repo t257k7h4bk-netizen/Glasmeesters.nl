@@ -1,0 +1,45 @@
+/* =========================================================
+   Glasmeesters Planner – kaart (fase 6)
+   ========================================================= */
+.kaart-filters { align-items: center; gap: 14px; flex-wrap: wrap; }
+.kaart-filters .vinkje { display: flex; align-items: center; gap: 6px; font-weight: 500; }
+.kaart-filters .vinkje input { width: 20px; height: 20px; }
+
+.kaart-indeling { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
+.kaart-vak { position: sticky; top: 12px; }
+#kaart { height: calc(100vh - 230px); min-height: 380px; border-radius: var(--rand); border: 1px solid var(--lijn); background: #E5E9EE; z-index: 0; }
+#kaart.kies-plek { cursor: crosshair; outline: 3px solid var(--goud); }
+.kaart-plaatsen { position: absolute; left: 12px; right: 12px; top: 12px; z-index: 500; display: flex; gap: 10px; align-items: center; justify-content: space-between;
+                  background: var(--wit); border: 2px solid var(--goud); border-radius: var(--rand); padding: 10px 14px; box-shadow: 0 4px 14px rgba(0,0,0,.15); }
+
+.kaart-lijst { display: flex; flex-direction: column; gap: 8px; }
+.kaart-dag { margin: 10px 0 2px; font-size: 15px; color: var(--blauw); }
+.kaart-dag::first-letter { text-transform: uppercase; }
+.kaart-dag:first-child { margin-top: 0; }
+.kaart-item { display: flex; gap: 10px; background: var(--wit); border: 1px solid var(--lijn); border-radius: var(--rand); padding: 12px; cursor: pointer; }
+.kaart-item:hover { border-color: var(--blauw); }
+.kaart-stip { width: 14px; height: 14px; border-radius: 50%; flex: none; margin-top: 4px; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.2); }
+.kaart-item-tekst { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.kaart-item-kop { display: flex; justify-content: space-between; gap: 8px; }
+.kaart-plek-status { font-size: 13px; }
+.kaart-knoppen { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.kaart-knoppen .knop { text-decoration: none; }
+.kaart-leeg { padding: 20px; background: var(--wit); border-radius: var(--rand); border: 1px dashed var(--lijn); }
+.link-knop { background: none; border: 0; padding: 0; color: var(--blauw); text-decoration: underline; font: inherit; cursor: pointer; }
+
+/* Pinnen op de kaart */
+.kaart-pin-houder { background: none; border: 0; }
+.kaart-pin { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; border: 3px solid #fff;
+             box-shadow: 0 1px 4px rgba(0,0,0,.45); font-size: 12px; }
+.kaart-pin.pin-opname { border-radius: 5px; transform: rotate(0deg); }
+.kaart-popup { display: flex; flex-direction: column; gap: 3px; font-size: 14px; }
+.kaart-popup .kaart-knoppen .knop { padding: 6px 10px; font-size: 13px; }
+.kaart-let-op { color: #7A4508; background: #FDF1E2; border-radius: 6px; padding: 4px 6px; font-size: 13px; }
+.leaflet-popup-content a.knop { color: var(--blauw-donker); }
+.leaflet-popup-content a.knop.tweede { color: var(--blauw); }
+
+@media (max-width: 900px) {
+  .kaart-indeling { grid-template-columns: 1fr; }
+  .kaart-vak { position: relative; top: 0; }
+  #kaart { height: 55vh; min-height: 300px; }
+}

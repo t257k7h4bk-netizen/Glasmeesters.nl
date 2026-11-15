@@ -439,3 +439,55 @@ function calcTotalen(c) {
     margeEcht: gefactureerd === null || !kostWerkelijk ? null : (gefactureerd / kostWerkelijk - 1) * 100
   };
 }
+
+// ---------- Kaart, route en Street View (fase 6, gratis variant) ----------
+// Links openen de Google Maps-app of -website; daarvoor is geen account of sleutel nodig.
+function routeLink(adres) { return "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(adres || ""); }
+function zoekLink(adres) { return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(adres || ""); }
+function streetViewLink(adres, plek) {
+  return plek && plek.lat && !plek.benadering ? "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=" + plek.lat + "," + plek.lon : zoekLink(adres);
+}
+// Route langs meerdere adressen (Google staat er maximaal 9 tussenstops toe)
+function routeLangs(adressen) {
+  const lijst = adressen.filter(Boolean);
+  if (!lijst.length) return "";
+  const doel = lijst[lijst.length - 1], tussen = lijst.slice(0, -1).slice(0, 9);
+  return routeLink(doel) + (tussen.length ? "&waypoints=" + encodeURIComponent(tussen.join("|")) : "");
+}
+
+// Adres → plek op de kaart via OpenStreetMap (Nominatim). Het resultaat wordt op dit apparaat
+// bewaard (opslag "locaties"), zodat elk adres maar één keer wordt opgezocht.
+// Nominatim vraagt om maximaal 1 zoekvraag per seconde.
+function adresSleutel(adres) { return String(adres || "").toLowerCase().replace(/\s+/g, " ").replace(/\s*,\s*/g, ",").trim(); }
+let _laatsteZoek = 0;
+async function zoekLocatie(adres, opties) {
+  const o = opties || {};
+  const sleutel = adresSleutel(adres);
+  if (!sleutel) return null;
+  const bekend = await Opslag.haal("locaties", sleutel);
+  if (bekend && (bekend.lat || (bekend.niet_gevonden && !o.opnieuw))) return bekend;
+  if (o.alleenBekend) return null;
+  const vraag = async function (q) {
+    const wacht = 1100 - (Date.now() - _laatsteZoek);
+    if (wacht > 0) await new Promise(function (r) { setTimeout(r, wacht); });
+    _laatsteZoek = Date.now();
+    const antwoord = await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=nl&accept-language=nl&q=" + encodeURIComponent(q));
+    if (!antwoord.ok) throw new Error("Zoeken mislukt (" + antwoord.status + ")");
+    const lijst = await antwoord.json();
+    return lijst[0] || null;
+  };
+  try {
+    let r = await vraag(adres), benadering = false;
+    // Niet gevonden? Probeer alleen de plaats (achter de laatste komma)
+    if (!r && adres.indexOf(",") !== -1) { r = await vraag(adres.split(",").pop().trim()); benadering = !!r; }
+    const plek = r ? { id: sleutel, adres: adres, lat: Number(r.lat), lon: Number(r.lon), benadering: benadering, bron: "openstreetmap" }
+                   : { id: sleutel, adres: adres, niet_gevonden: true };
+    await Opslag.bewaar("locaties", plek);
+    return plek;
+  } catch (e) {
+    return { adres: adres, fout: e.message || "geen verbinding" };
+  }
+}
+async function zetLocatieHandmatig(adres, lat, lon) {
+  return Opslag.bewaar("locaties", { id: adresSleutel(adres), adres: adres, lat: lat, lon: lon, handmatig: true, bron: "handmatig" });
+}

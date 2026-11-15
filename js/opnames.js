@@ -210,6 +210,7 @@
     zet("p-nb-regeling", p.nb_regeling); zet("p-nb-status", p.nb_status || ""); zet("p-nb-plan", p.nb_isolatieplan); zet("p-nb-dossier", p.nb_dossier);
     tekenNijBegun();
     tekenActies();
+    tekenAdresLinks();
     tekenRamen();
   }
 
@@ -251,6 +252,17 @@
     melding("p-melding");
     return true;
   }
+
+  // ---------- Route en Street View bij het adres (fase 6) ----------
+  async function tekenAdresLinks() {
+    const adres = $("p-adres").value.trim();
+    if (!adres) { $("p-adres-links").innerHTML = ""; return; }
+    const plek = await zoekLocatie(adres, { alleenBekend: true });
+    if ($("p-adres").value.trim() !== adres) return;
+    $("p-adres-links").innerHTML = '<a href="' + routeLink(adres) + '" target="_blank" rel="noopener">🧭 Route</a>' +
+      '<a href="' + streetViewLink(adres, plek) + '" target="_blank" rel="noopener">👁 Street View</a>';
+  }
+  $("p-adres").addEventListener("input", tekenAdresLinks);
 
   // ---------- Nij Begun ----------
   // De planner mag de stand van zaken en het dossiernummer bijwerken (ook al mag hij de opname zelf niet wijzigen)
