@@ -114,7 +114,21 @@ function vervalStatus(datum, opDatum) {
   return statusBevoegdheid({ behaald: true, geldig_tot: datum }, opDatum);
 }
 
-// Alle aandachtspunten van een voertuig (of gereedschap) op een dag
+// Alle aandachtspunten van gereedschap op een dag
+function gereedschapMeldingen(g, opDatum) {
+  const m = [];
+  if (g.status === "defect") m.push({ niveau: "rood", soort: "status", tekst: "Defect" + (g.bijzonderheden ? " – " + g.bijzonderheden : "") });
+  if (g.status === "afgekeurd") m.push({ niveau: "grijs", soort: "status", tekst: "Afgekeurd" + (g.bijzonderheden ? " – " + g.bijzonderheden : "") });
+  const k = vervalStatus(g.volgende_keuring, opDatum);
+  if (k === "verlopen") m.push({ niveau: "rood", soort: "keuring", tekst: "Keuring verlopen sinds " + datumNL(g.volgende_keuring) });
+  else if (k === "bijna") m.push({ niveau: "oranje", soort: "keuring", tekst: "Keuring vóór " + datumNL(g.volgende_keuring) });
+  const o = vervalStatus(g.volgende_onderhoud, opDatum);
+  if (o === "verlopen") m.push({ niveau: "oranje", soort: "onderhoud", tekst: "Onderhoud te laat (gepland " + datumNL(g.volgende_onderhoud) + ")" });
+  else if (o === "bijna") m.push({ niveau: "oranje", soort: "onderhoud", tekst: "Onderhoud gepland op " + datumNL(g.volgende_onderhoud) });
+  return m;
+}
+
+// Alle aandachtspunten van een voertuig op een dag
 // niveau: "rood" = actie vereist, "oranje" = aandacht nodig, "grijs" = niet actief
 function voertuigMeldingen(v, opDatum) {
   const m = [];

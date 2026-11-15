@@ -342,6 +342,7 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--goud); bord
 }
 .kenteken::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 11px; background: #1F4FB0; border-radius: 3px 0 0 3px; }
 .alleen-lezen-wagenpark .alleen-wagenpark { display: none !important; }
+.categorie-kop { font-size: 17px; margin: 22px 0 10px; }
 details.toevoegen { margin-top: 10px; }
 details.toevoegen summary { list-style: none; display: inline-block; }
 details.toevoegen summary::-webkit-details-marker { display: none; }

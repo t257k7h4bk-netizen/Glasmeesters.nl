@@ -161,6 +161,11 @@ const Werkopdracht = (function () {
       if (g.status === "defect" || g.status === "afgekeurd") {
         rood.push({ tekst: g.naam + " is " + GEREEDSCHAP_STATUS[g.status].toLowerCase() + " en mag niet gebruikt worden.", soort: "dubbel" });
       }
+      // Keuring verlopen op de dag van de klus: niet gebruiken. Onderhoud te laat: waarschuwing.
+      gereedschapMeldingen(g, klus.datum).forEach(function (mld) {
+        if (mld.soort === "keuring" && mld.niveau === "rood") rood.push({ tekst: g.naam + ": " + mld.tekst + ". Niet gebruiken tot het opnieuw gekeurd is.", soort: "dubbel" });
+        if (mld.soort === "onderhoud" && /te laat/.test(mld.tekst)) oranje.push(g.naam + ": " + mld.tekst + ".");
+      });
       if (g.vereist && mensen.length && !mensen.some(function (m) { return heeft(m, g.vereist, klus.datum); })) {
         const def = BEVOEGDHEDEN.find(function (d) { return d.code === g.vereist; }) || {};
         const tekst = "LET OP: niemand op deze opdracht heeft een geldig certificaat \"" + bevoegdheidNaam(g.vereist) + "\" voor " + g.naam + ".";
@@ -553,10 +558,14 @@ const Werkopdracht = (function () {
     });
     $("wo-gereedschap").innerHTML = lijst.map(function (g) {
       let s = { soort: "groen", tekst: GEREEDSCHAP_STATUS[g.status] || "" };
+      const datumKlus = $("wo-datum").value;
+      const keuringWeg = datumKlus && gereedschapMeldingen(g, datumKlus).some(function (m) { return m.soort === "keuring" && m.niveau === "rood"; });
+      const onbruikbaar = g.status === "defect" || g.status === "afgekeurd" || keuringWeg;
       if (g.status === "defect" || g.status === "afgekeurd") s = { soort: "rood", tekst: GEREEDSCHAP_STATUS[g.status] };
+      else if (keuringWeg) s = { soort: "rood", tekst: "keuring verlopen" };
       else { const b = bezetDoor("gereedschap", g.id); if (b) s = { soort: "oranje", tekst: "ook bij " + b.klant + " " + b.start + "–" + b.eind }; }
       const aan = isGekozen(g.id);
-      const uit = !ctx.magBewerken || ((g.status === "defect" || g.status === "afgekeurd") && !aan);
+      const uit = !ctx.magBewerken || (onbruikbaar && !aan);
       return '<label class="keuze-item' + (aan ? " aan" : "") + '">' +
                '<input type="checkbox" value="' + g.id + '"' + (aan ? " checked" : "") + (uit ? " disabled" : "") + '>' +
                '<span class="keuze-naam">' + esc(g.naam) + ' <span class="zacht">' + esc(g.categorie) + '</span></span>' +

@@ -13,13 +13,107 @@
 <body data-pagina="gereedschap">
 
   <main class="inhoud">
-    <h1>Gereedschap</h1>
-    <p class="ondertitel">Gereedschap en materieel, keuringen en uitgifte.</p>
-    <div class="binnenkort">
-      Dit onderdeel bouwen we in <strong>fase 4</strong>.
+    <div class="paginakop">
+      <div>
+        <h1>Gereedschap</h1>
+        <p class="ondertitel" id="samenvatting">Bezig met laden…</p>
+      </div>
+      <button class="knop alleen-wagenpark" id="nieuw">+ Nieuw gereedschap</button>
     </div>
+
+    <div class="knoppengroep weergave-wissel" role="group" aria-label="Filter">
+      <button type="button" data-filter="alle" class="actief">Alle</button>
+      <button type="button" data-filter="aandacht">Aandacht nodig</button>
+      <button type="button" data-filter="keuring">Keuring binnen 30 dagen</button>
+      <button type="button" data-filter="defect">Defect of afgekeurd</button>
+      <button type="button" data-filter="uitgegeven">Uitgegeven</button>
+    </div>
+
+    <div class="filterbalk">
+      <input type="search" id="zoek" placeholder="Zoek op naam, serienummer of merk…" aria-label="Zoeken">
+      <select id="categorie" aria-label="Categorie"><option value="">Alle categorieën</option></select>
+    </div>
+
+    <div id="lijst"></div>
   </main>
 
+  <dialog id="detail" class="venster breed-venster">
+    <form id="formulier" method="dialog">
+      <div class="venster-kop">
+        <div><h2 id="titel">Gereedschap</h2><span class="zacht" id="subtitel"></span></div>
+        <button type="button" class="sluit" data-sluit aria-label="Sluiten">✕</button>
+      </div>
+      <div class="venster-inhoud">
+        <div id="meldingen"></div>
+
+        <h3 class="sectie">Algemeen</h3>
+        <div class="foto-blok">
+          <div class="voertuig-foto groot" id="foto-voorbeeld">🧰</div>
+          <div class="alleen-wagenpark">
+            <label class="knop tweede klein" for="foto-bestand">Foto kiezen</label>
+            <input type="file" id="foto-bestand" accept="image/*" hidden>
+            <button type="button" class="knop tweede klein" id="foto-weg">Foto verwijderen</button>
+          </div>
+        </div>
+        <div class="velden-2">
+          <div class="veld"><label for="g-naam">Naam</label><input id="g-naam" required placeholder="Bijv. Glaszuiger 5"></div>
+          <div class="veld"><label for="g-categorie">Categorie</label><select id="g-categorie"></select></div>
+          <div class="veld"><label for="g-merk">Merk</label><input id="g-merk"></div>
+          <div class="veld"><label for="g-type">Type</label><input id="g-type"></div>
+          <div class="veld"><label for="g-serie">Serienummer</label><input id="g-serie"></div>
+          <div class="veld"><label for="g-aankoop">Aankoopdatum</label><input id="g-aankoop" type="date"></div>
+          <div class="veld"><label for="g-status">Status</label><select id="g-status"></select></div>
+          <div class="veld"><label for="g-locatie">Locatie</label><input id="g-locatie" placeholder="Bijv. Magazijn of Bus 2"></div>
+          <div class="veld"><label for="g-verantwoordelijke">Verantwoordelijke medewerker</label><select id="g-verantwoordelijke"></select></div>
+          <div class="veld"><label for="g-uitgegeven">Vast uitgegeven aan</label><select id="g-uitgegeven"></select></div>
+          <div class="veld"><label for="g-vereist">Benodigde bevoegdheid</label><select id="g-vereist"></select></div>
+        </div>
+        <div class="veld"><label for="g-bijz">Bijzonderheden</label><textarea id="g-bijz" rows="2" style="width:100%"></textarea></div>
+
+        <h3 class="sectie">Keuring en onderhoud</h3>
+        <div class="velden-2">
+          <div class="veld"><label for="g-laatste-keuring">Laatste keuring</label><input id="g-laatste-keuring" type="date"></div>
+          <div class="veld"><label for="g-volgende-keuring">Volgende keuring (uiterlijk)</label><input id="g-volgende-keuring" type="date"></div>
+          <div class="veld"><label for="g-laatste-onderhoud">Laatste onderhoud</label><input id="g-laatste-onderhoud" type="date"></div>
+          <div class="veld"><label for="g-volgende-onderhoud">Volgende onderhoud</label><input id="g-volgende-onderhoud" type="date"></div>
+        </div>
+
+        <h3 class="sectie">Historie</h3>
+        <div id="historie"></div>
+        <details class="toevoegen alleen-wagenpark" id="toevoegen">
+          <summary class="knop tweede klein">+ Keuring, onderhoud of reparatie vastleggen</summary>
+          <div class="velden-2" style="margin-top:12px">
+            <div class="veld"><label for="h-datum">Datum</label><input id="h-datum" type="date"></div>
+            <div class="veld"><label for="h-soort">Soort</label><select id="h-soort"></select></div>
+            <div class="veld"><label for="h-door">Uitgevoerd door</label><input id="h-door" placeholder="Bijv. keuringsbedrijf"></div>
+            <div class="veld"><label for="h-kosten">Kosten (€)</label><input id="h-kosten" type="number" inputmode="decimal" min="0" step="0.01"></div>
+            <div class="veld" id="h-uitslag-veld"><label for="h-uitslag">Uitslag</label>
+              <select id="h-uitslag"><option value="goed">Goedgekeurd</option><option value="afgekeurd">Afgekeurd</option></select></div>
+            <div class="veld" id="h-volgende-veld"><label for="h-volgende">Volgende keuring (uiterlijk)</label><input id="h-volgende" type="date"></div>
+          </div>
+          <div class="veld"><label for="h-oms">Omschrijving</label><input id="h-oms" style="width:100%"></div>
+          <button type="button" class="knop klein" id="h-opslaan">Vastleggen</button>
+          <p class="zacht">Bij een keuring of onderhoud worden de datums hierboven vanzelf bijgewerkt. Afgekeurd = status Afgekeurd.</p>
+        </details>
+
+        <h3 class="sectie">Ingepland bij opdrachten</h3>
+        <div id="inzet"></div>
+
+        <div class="melding" id="melding"></div>
+      </div>
+      <div class="venster-voet alleen-wagenpark">
+        <button type="button" class="knop gevaar" id="verwijder">Verwijderen</button>
+        <span class="ruimte"></span>
+        <button type="button" class="knop tweede" data-sluit>Annuleren</button>
+        <button type="submit" class="knop">Opslaan</button>
+      </div>
+    </form>
+  </dialog>
+
   <script src="js/layout.js"></script>
+  <script src="js/opslag.js"></script>
+  <script src="js/keuzelijsten.js"></script>
+  <script src="js/voorbeeld.js"></script>
+  <script src="js/gereedschap.js"></script>
 </body>
 </html>

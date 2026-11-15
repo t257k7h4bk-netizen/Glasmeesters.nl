@@ -19,6 +19,7 @@ glasopnames, voertuigen en gereedschap in één programma.
 | `werkopdrachten.html`, `js/werkopdracht.js` | Werkopdrachtenlijst en het gedeelde werkopdrachtvenster (ook gebruikt in de planning) |
 | `js/whatsapp.js` | WhatsApp-bericht samenstellen uit een werkopdracht (sjabloon aanpasbaar in Beheer) |
 | `voertuigen.html`, `js/voertuigen.js` | Wagenpark: APK, verzekering, onderhoud (datum en km), historie, inzet |
+| `gereedschap.html`, `js/gereedschap.js` | Gereedschap: keuringen, onderhoud, uitgifte, historie, inzet |
 | `beheer.html` | Instellingen (dagdelen), back-up downloaden/terugzetten, alles wissen |
 | `img/` | Pictogrammen voor het beginscherm van tablet en telefoon |
 | `manifest.webmanifest` | Zorgt dat het programma als app op het beginscherm kan |
@@ -38,7 +39,7 @@ glasopnames, voertuigen en gereedschap in één programma.
 - [x] Stap 4a – Opleidingen en bevoegdheden bewerken + opleidingenoverzicht
 - [x] Stap 4b – Automatische waarschuwingen en blokkades
 - [x] Stap 4c – Voertuigenbeheer
-- [ ] Stap 4d – Gereedschapsbeheer
+- [x] Stap 4d – Gereedschapsbeheer
 - [ ] Stap 4e – Meldingen op het dashboard
 
 Tijdens het bouwen worden gegevens alleen lokaal in de browser opgeslagen en gebruiken we

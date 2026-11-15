@@ -356,6 +356,38 @@ const Voorbeeld = (function () {
         await Opslag.bewaar("instellingen", vlag);
       }
 
+      // Fase 4: gereedschapdetails aanvullen (ook in eerder geladen gegevens)
+      const vlag2 = (await Opslag.haal("instellingen", "voorbeeld")) || { id: "voorbeeld" };
+      if (!vlag2.gereedschapdetails) {
+        const mensen = await Opslag.alle("medewerkers");
+        const idVan = function (n) { const m = mensen.find(function (x) { return x.voornaam + " " + x.achternaam === n; }); return m ? m.id : ""; };
+        // Afwijkende keuringen om meldingen te kunnen testen (dagen vanaf vandaag)
+        const KEURING = { "Glaszuiger 2": 12, "Glaslift 1": -5, "Ladder 1 (3-delig)": 25, "Rolsteiger 2": 18 };
+        const UITGIFTE = { "Accuboormachine 1": "Peter de Vries", "Accuboormachine 2": "Bert Huizinga", "Kitpistool-set 1": "Jan Bakker" };
+        const lijst = await Opslag.alle("gereedschap");
+        let i = 0;
+        for (const g of lijst) {
+          i++;
+          if (!g.voorbeeld || g.serienummer) continue;
+          const keuring = KEURING[g.naam] !== undefined ? KEURING[g.naam] : 60 + (i * 23) % 280;
+          Object.assign(g, {
+            serienummer: "SN-" + String(10400 + i * 37),
+            type: g.type || "",
+            aankoopdatum: dag(-(400 + i * 41)),
+            locatie: UITGIFTE[g.naam] ? "Bus van medewerker" : "Magazijn",
+            verantwoordelijke: idVan("Monique Veenstra"),
+            uitgegeven_aan: UITGIFTE[g.naam] ? idVan(UITGIFTE[g.naam]) : "",
+            laatste_keuring: dag(keuring - 365),
+            volgende_keuring: dag(keuring),
+            laatste_onderhoud: dag(-(90 + i * 5)),
+            volgende_onderhoud: dag(120 + (i * 17) % 200)
+          });
+          await Opslag.bewaar("gereedschap", g);
+        }
+        vlag2.gereedschapdetails = true;
+        await Opslag.bewaar("instellingen", vlag2);
+      }
+
       // Fase 4: de minihijskraan vraagt een certificaat (ook in eerder geladen gegevens)
       const lijst = await Opslag.alle("gereedschap");
       for (const g of lijst) {
