@@ -669,3 +669,4 @@ input:disabled, select:disabled, textarea:disabled { background: var(--achtergro
 .tarief-regel { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--lijn); }
 .tarief-regel label { flex: 1; }
 .kaart-item-extra { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; font-size: 13px; }
+.zones-diagnose { white-space: pre-wrap; word-break: break-word; background: #1F2933; color: #E6EDF3; padding: 12px; border-radius: 8px; font-size: 12px; max-height: 360px; overflow: auto; }

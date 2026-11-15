@@ -74,7 +74,9 @@
           <button class="knop" id="zones-bijwerken">Nu bijwerken</button>
           <button class="knop tweede" id="zones-bestand-knop">Laden uit bestand (GeoJSON)</button>
           <input type="file" id="zones-bestand" accept=".json,.geojson,application/json" hidden>
+          <button class="knop tweede" id="zones-test">🔍 Zones testen</button>
         </div>
+        <pre class="zones-diagnose" id="zones-diagnose" hidden></pre>
         <p class="uitleg">Lukt bijwerken niet? Open dan dit adres in de browser, bewaar de pagina als bestand en laad dat hier:<br>
           <code id="zones-bron"></code></p>
         <div class="melding" id="melding-zones"></div>
@@ -302,6 +304,40 @@
       document.getElementById("zones-stand").textContent = "Bezig met bijwerken…";
       await Zones.laad({ opnieuw: true });
       tekenZoneStand();
+    });
+    // Diagnose: laat precies zien wat de bron terugstuurt (voor het oplossen van problemen)
+    document.getElementById("zones-test").addEventListener("click", async function () {
+      const uit = document.getElementById("zones-diagnose");
+      uit.hidden = false;
+      const r = [];
+      r.push("Versie: " + VERSIE);
+      r.push("Bron: " + Zones.BRON);
+      try {
+        const t0 = Date.now();
+        const antwoord = await fetch(Zones.BRON, { headers: { Accept: "application/json" } });
+        r.push("Antwoord: " + antwoord.status + " " + antwoord.statusText + " (" + (Date.now() - t0) + " ms)");
+        r.push("Soort: " + (antwoord.headers.get("content-type") || "onbekend"));
+        const tekst = await antwoord.text();
+        r.push("Grootte: " + Math.round(tekst.length / 1024) + " kB");
+        let data = null;
+        try { data = JSON.parse(tekst); } catch (e) { r.push("Geen JSON. Begin: " + tekst.slice(0, 300)); }
+        if (data) {
+          r.push("Bovenste velden: " + (Array.isArray(data) ? "lijst met " + data.length + " items" : Object.keys(data).join(", ")));
+          const lijst = Array.isArray(data) ? data : (data.features || (data.data && data.data.features) || []);
+          r.push("Aantal features: " + lijst.length);
+          if (lijst[0]) {
+            const f = lijst[0];
+            r.push("Eerste feature, velden: " + Object.keys(f).join(", "));
+            r.push("Geometrie: " + (f.geometry ? f.geometry.type + " " + JSON.stringify(f.geometry.coordinates).slice(0, 80) : "geen"));
+            r.push("Eigenschappen: " + JSON.stringify(f.properties || {}).slice(0, 1200));
+          }
+          const zones = Zones.verwerk(data);
+          r.push("Herkend als zones: " + zones.length + (zones[0] ? " (bijv. " + zones[0].naam + ", " + zones[0].type + ", vanaf " + (zones[0].vanaf || "?") + ")" : ""));
+        }
+      } catch (e) {
+        r.push("FOUT: " + (e.message || e) + (/fetch/i.test(e.message || "") ? "  → de browser mag de bron niet lezen (vaak een CORS-instelling van de bron)." : ""));
+      }
+      uit.textContent = r.join("\n");
     });
     document.getElementById("zones-bestand-knop").addEventListener("click", function () { document.getElementById("zones-bestand").click(); });
     document.getElementById("zones-bestand").addEventListener("change", async function (e) {
