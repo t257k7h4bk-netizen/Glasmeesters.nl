@@ -107,3 +107,28 @@
 .nb-knoppen button.actief[data-nb="Ja"] { background: #23663A; border-color: #23663A; color: #fff; }
 .rood-tekst { color: #C0392B; font-weight: 600; }
 .project-acties { flex-wrap: wrap; justify-content: flex-end; }
+
+/* ---------- Telefoon: compacter raamformulier en projectkop ---------- */
+.modus-wissel button { white-space: nowrap; }
+@media (max-width: 600px) {
+  .modus-wissel { flex-wrap: nowrap; }
+  .modus-wissel button { padding: 6px 10px; font-size: 14px; }
+  #raam .venster-kop { gap: 8px; padding: 12px 14px; }
+  #raam .venster-kop h2 { font-size: 18px; }
+  #raam .venster-inhoud { padding: 14px; }
+  /* Onderin: Verwijderen en Kopiëren klein op één regel, Opslaan-knoppen groot ernaast */
+  #raam .venster-voet { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px 14px; }
+  #raam .venster-voet .ruimte { display: none; }
+  #raam .venster-voet #r-verwijder, #raam .venster-voet #r-kopie { padding: 7px 10px; font-size: 14px; }
+  #raam .venster-voet #r-volgend, #raam .venster-voet button[type=submit] { padding: 12px 10px; font-size: 15px; }
+  #raam .venster-voet #r-volgend { white-space: normal; line-height: 1.2; }
+  /* Projectkop: knoppen op één rij */
+  .project-acties { gap: 6px; }
+  .project-acties .knop { padding: 9px 12px; font-size: 14px; }
+  #p-bewaard { width: 100%; text-align: right; order: 9; font-size: 13px; }
+}
+@media (max-width: 600px) {
+  #raam .venster-kop h2 { flex: 1; min-width: 0; }
+  #raam .venster-kop .modus-wissel { flex: none; margin-left: 0; margin-right: 0; }
+  #raam .venster-kop .modus-wissel button { padding: 6px 8px; font-size: 13px; }
+}
