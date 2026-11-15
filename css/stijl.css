@@ -590,3 +590,9 @@ input:disabled, select:disabled, textarea:disabled { background: var(--achtergro
   .tegels { grid-template-columns: 1fr 1fr; gap: 10px; }
   .tegel .getal { font-size: 24px; }
 }
+
+/* Nij Begun en link naar de opname (stap 5c) */
+.tag-nb { background: #E8F3EA; border-color: #A9D3B1; color: #23663A; font-weight: 600; }
+.wo-opname { margin-top: 4px; font-size: .95rem; }
+.wo-opname a { font-weight: 600; }
+.wo-nieuw-melding { margin-top: 6px; padding: 6px 10px; border-radius: 8px; background: #E7F4EC; color: #1D5E3A; font-weight: 600; }

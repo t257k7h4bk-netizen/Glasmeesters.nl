@@ -132,7 +132,7 @@
                  '<span class="opdracht-midden">' +
                    '<strong>' + esc(o.klant) + '</strong>' +
                    (o.adres ? '<span class="zacht">' + esc(o.adres) + '</span>' : "") +
-                   ((o.soort_werk || []).length ? '<span class="tags">' + o.soort_werk.map(function (w) { return '<span class="tag">' + esc(w) + '</span>'; }).join("") + '</span>' : "") +
+                   (((o.soort_werk || []).length || o.nij_begun) ? '<span class="tags">' + (o.nij_begun ? '<span class="tag tag-nb">Nij Begun</span>' : "") + (o.soort_werk || []).map(function (w) { return '<span class="tag">' + esc(w) + '</span>'; }).join("") + '</span>' : "") +
                  '</span>' +
                  '<span class="opdracht-rechts">' +
                    '<span class="' + (o.datum ? "" : "oranje-tekst") + '">' + esc(datumTekst(o)) + '</span>' +
@@ -184,7 +184,11 @@
       const id = new URLSearchParams(location.search).get("id");
       if (id) {
         const o = opdrachten.find(function (x) { return x.id === id; });
-        if (o) Werkopdracht.open(o);
+        if (o) {
+          const nieuw = new URLSearchParams(location.search).get("nieuw");
+          Werkopdracht.open(o, nieuw ? { melding: "Werkopdracht " + o.nummer + " is gemaakt uit opname " + (o.opname_nummer || "") + ". Controleer de gegevens en kies de datum en de ploeg." } : null);
+          if (nieuw) history.replaceState(null, "", "werkopdrachten.html?id=" + o.id);
+        }
       }
     })();
   }

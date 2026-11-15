@@ -57,6 +57,20 @@
         <div class="melding" id="melding-minimum"></div>
       </section>
 
+      <!-- Nij Begun -->
+      <section class="kaart">
+        <h2>Nij Begun – maatregelcodes</h2>
+        <p class="uitleg">Vul per glassoort en roostersoort de <strong>maatregelcode</strong> en de <strong>waarde</strong>
+          (bijv. de U-waarde) in uit de maatregelencatalogus van Nij Begun. Die komen dan vanzelf bij elke opname
+          en op het opnameformulier. Leeg laten mag: dan staat er "ontbreekt".</p>
+        <table class="tabel nb-tabel">
+          <thead><tr><th>Glas of rooster</th><th>Maatregelcode</th><th>Waarde</th></tr></thead>
+          <tbody id="nb-codes"></tbody>
+        </table>
+        <div class="knoppen"><button class="knop" id="nb-opslaan">Opslaan</button></div>
+        <div class="melding" id="melding-nb"></div>
+      </section>
+
       <!-- Back-up -->
       <section class="kaart">
         <h2>Back-up</h2>
@@ -231,6 +245,33 @@
       MINIMUM_M2_PER_RUIT = w;
       toon("melding-minimum", "goed", "Opgeslagen: ruiten kleiner dan " + w.toLocaleString("nl-NL") + " m² worden als " + w.toLocaleString("nl-NL") + " m² berekend.");
     });
+
+    // ----- Nij Begun: maatregelcodes -----
+    const NB_GLAS = ["HR++", "HR+++", "Triple glas", "Gelaagd glas", "Gehard glas", "Zonwerend glas"];
+    const NB_ROOSTER = ["Gewoon rooster", "Isolerend rooster"];
+    function nbRij(soort, naam, w) {
+      const e = function (t) { return String(t || "").replace(/"/g, "&quot;"); };
+      return '<tr data-soort="' + soort + '" data-naam="' + e(naam) + '"><td>' + naam + '</td>' +
+             '<td><input class="nb-code" value="' + e(w.code) + '" placeholder="bijv. code uit catalogus"></td>' +
+             '<td><input class="nb-waarde" value="' + e(w.waarde) + '" placeholder="bijv. U ≤ 1,1"></td></tr>';
+    }
+    async function laadNbCodes() {
+      const c = await laadNijBegun();
+      document.getElementById("nb-codes").innerHTML =
+        NB_GLAS.map(function (g) { return nbRij("glas", g, c.glas[g] || {}); }).join("") +
+        NB_ROOSTER.map(function (r) { return nbRij("rooster", r, c.rooster[r] || {}); }).join("");
+    }
+    document.getElementById("nb-opslaan").addEventListener("click", async function () {
+      const data = { id: "nijbegun", glas: {}, rooster: {} };
+      document.querySelectorAll("#nb-codes tr").forEach(function (rij) {
+        const code = rij.querySelector(".nb-code").value.trim(), waarde = rij.querySelector(".nb-waarde").value.trim();
+        if (code || waarde) data[rij.dataset.soort][rij.dataset.naam] = { code: code, waarde: waarde };
+      });
+      await Opslag.bewaar("instellingen", data);
+      await laadNijBegun();
+      toon("melding-nb", "goed", "De maatregelcodes van Nij Begun zijn opgeslagen.");
+    });
+    laadNbCodes();
 
     // ----- Logboek -----
     async function laadLogboek() {

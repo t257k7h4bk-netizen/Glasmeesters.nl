@@ -101,3 +101,9 @@
 .modus-wissel button { padding: 8px 14px; }
 .venster-kop .modus-wissel { margin-left: auto; margin-right: 8px; }
 .tag-rooster { background: #E6EEF5; border-color: #B9CEE0; color: var(--blauw); }
+
+/* ---------- Nij Begun en acties (stap 5c) ----------*/
+.nb-knoppen button { min-width: 90px; }
+.nb-knoppen button.actief[data-nb="Ja"] { background: #23663A; border-color: #23663A; color: #fff; }
+.rood-tekst { color: #C0392B; font-weight: 600; }
+.project-acties { flex-wrap: wrap; justify-content: flex-end; }

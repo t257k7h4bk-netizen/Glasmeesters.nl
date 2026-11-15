@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Opnameformulier – Glasmeesters Planner</title>
+  <meta name="theme-color" content="#2A5577">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="img/icoon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="img/icoon-180.png">
+  <link rel="stylesheet" href="css/pdf.css">
+</head>
+<body>
+  <!-- Balk bovenaan: komt niet op de PDF -->
+  <div class="pdf-balk">
+    <button type="button" class="knop tweede" id="terug">‹ Terug</button>
+    <div class="pdf-balk-tekst">
+      <strong>Opnameformulier</strong>
+      <span id="tip">Tik op de knop. Kies daarna <em>Opslaan als PDF</em> (computer) of de deelknop → <em>Bewaar in Bestanden</em> (iPad).</span>
+    </div>
+    <button type="button" class="knop" id="afdrukken">📄 PDF maken / afdrukken</button>
+  </div>
+
+  <main class="blad" id="blad"><p>Bezig met laden…</p></main>
+
+  <script src="js/opslag.js"></script>
+  <script src="js/keuzelijsten.js"></script>
+  <script src="js/schets.js"></script>
+  <script src="js/opname-pdf.js"></script>
+</body>
+</html>

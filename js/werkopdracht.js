@@ -191,6 +191,17 @@ const Werkopdracht = (function () {
       });
     }
 
+    // 5b. Bevoegdheden voor materieel uit de opname (kraan, hoogwerker…) – waarschuwing
+    if (mensen.length) {
+      const alGecontroleerd = (klus.gereedschap || []).map(gereedschapItem).filter(Boolean).map(function (g) { return g.vereist; });
+      (klus.vereiste_bevoegdheden || []).forEach(function (code) {
+        if (alGecontroleerd.indexOf(code) !== -1) return;
+        if (!mensen.some(function (m) { return heeft(m, code, klus.datum); })) {
+          oranje.push("Volgens de opname is \"" + kleineLetter(bevoegdheidNaam(code)) + "\" nodig, maar niemand op deze opdracht heeft die.");
+        }
+      });
+    }
+
     // 6. Verlopen of ontbrekende VCA bij de buitendienst (waarschuwing)
     mensen.forEach(function (m) {
       if (groepVanFunctie(m.functie) !== "buitendienst") return;
@@ -233,15 +244,7 @@ const Werkopdracht = (function () {
   }
 
   // ---------- Opdrachtnummers: 2026-0001, 2026-0002, ... ----------
-  async function nieuwNummer() {
-    const jaar = new Date().getFullYear();
-    const teller = (await Opslag.haal("instellingen", "teller")) || { id: "teller" };
-    const laatste = teller.jaar === jaar ? teller.laatste : 0;
-    teller.jaar = jaar;
-    teller.laatste = laatste + 1;
-    await Opslag.bewaar("instellingen", teller);
-    return jaar + "-" + String(teller.laatste).padStart(4, "0");
-  }
+  function nieuwNummer() { return nieuwOpdrachtNummer(); }
 
   // Oudere opdrachten (uit fase 2) krijgen alsnog een nummer en status
   async function zorgVoorNummers() {
@@ -274,7 +277,7 @@ const Werkopdracht = (function () {
     venster.innerHTML =
       '<form id="wo-form" method="dialog">' +
         '<div class="venster-kop">' +
-          '<div><h2 id="wo-titel">Werkopdracht</h2><span class="zacht" id="wo-nummer"></span></div>' +
+          '<div><h2 id="wo-titel">Werkopdracht</h2><span class="zacht" id="wo-nummer"></span><div class="wo-opname" id="wo-opname"></div></div>' +
           '<button type="button" class="sluit" data-wo-sluit aria-label="Sluiten">✕</button>' +
         '</div>' +
         '<div class="venster-inhoud">' +
@@ -812,6 +815,7 @@ const Werkopdracht = (function () {
 
     $("wo-titel").textContent = opdracht ? (o.klant || "Werkopdracht") : "Nieuwe werkopdracht";
     $("wo-nummer").textContent = opdracht && o.nummer ? "Opdracht " + o.nummer : "Krijgt een nummer bij opslaan";
+    tekenOpnameLink(o);
     $("wo-klant").value = o.klant || "";
     $("wo-status").value = o.status || (o.datum ? "gepland" : "concept");
     $("wo-tel").value = o.telefoon_klant || "";
@@ -847,6 +851,7 @@ const Werkopdracht = (function () {
     tekenBestanden();
     laadBestanden();
     tekenWaStatus(o);
+    if (v.melding) { $("wo-opname").hidden = false; $("wo-opname").insertAdjacentHTML("beforeend", '<div class="wo-nieuw-melding">✅ ' + esc(v.melding) + '</div>'); }
     if (opdracht && o.opheffing) {
       melding("info", "Blokkade eerder opgeheven door de beheerder op " +
         new Date(o.opheffing.op).toLocaleDateString("nl-NL") + ". Reden: " + esc(o.opheffing.reden));
@@ -857,6 +862,20 @@ const Werkopdracht = (function () {
     $("wo-foto").disabled = false; $("wo-document").disabled = false;
     document.querySelectorAll("#wo-voertuig, #wo-aanhanger").forEach(function (el) { el.disabled = !ctx.magBewerken; });
     $("werkopdracht").showModal();
+  }
+
+  // Link naar de opname waar deze opdracht uit komt (stap 5c)
+  function tekenOpnameLink(o) {
+    const el = $("wo-opname");
+    if (!o.opname) { el.innerHTML = ""; el.hidden = true; return; }
+    const rol = typeof huidigeRol === "function" ? huidigeRol() : "";
+    const magOpname = ["beheerder", "planner", "opnemer"].indexOf(rol) !== -1;
+    el.hidden = false;
+    el.innerHTML =
+      (o.nij_begun ? '<span class="tag tag-nb">Nij Begun' + (o.nij_begun.regeling ? ": " + esc(o.nij_begun.regeling.replace(/ \(.*\)/, "")) : "") + '</span> ' : "") +
+      '<span class="zacht">Uit opname ' + esc(o.opname_nummer || "") + ':</span> ' +
+      (magOpname ? '<a href="opnames.html?id=' + encodeURIComponent(o.opname) + '">📐 opname bekijken</a> · ' : "") +
+      '<a href="opname-pdf.html?id=' + encodeURIComponent(o.opname) + '">📄 opnameformulier</a>';
   }
 
   // ---------- Opslaan ----------

@@ -46,6 +46,8 @@
             <button type="button" data-modus="uitgebreid">Uitgebreid</button>
           </div>
           <span class="zacht" id="p-bewaard"></span>
+          <button type="button" class="knop tweede" id="p-pdf" hidden>📄 PDF</button>
+          <button type="button" class="knop tweede" id="p-omzetten" hidden>→ Werkopdracht</button>
           <button type="button" class="knop alleen-opnemer" id="p-opslaan">Opslaan</button>
         </div>
       </div>
@@ -78,6 +80,28 @@
             <div class="veld"><label for="p-opnemer">Opnemer</label><select id="p-opnemer"></select></div>
           </div>
           <div class="veld"><label for="p-opm">Algemene opmerkingen</label><textarea id="p-opm" rows="3" class="vol"></textarea></div>
+        </div>
+        <div class="kaart nb-kaart" style="margin-top:16px">
+          <h2>Nij Begun <span class="zacht">(isolatiesubsidie)</span></h2>
+          <div class="veld">
+            <label>Doet de klant mee met Nij Begun?</label>
+            <div class="knoppengroep nb-knoppen" id="p-nb" role="group" aria-label="Nij Begun">
+              <button type="button" data-nb="Ja">Ja</button>
+              <button type="button" data-nb="Nee">Nee</button>
+              <button type="button" data-nb="">Weet ik niet</button>
+            </div>
+          </div>
+          <div id="nb-velden" hidden>
+            <div class="velden-3">
+              <div class="veld"><label for="p-nb-regeling">Soort subsidie</label><select id="p-nb-regeling"></select></div>
+              <div class="veld"><label for="p-nb-status">Stand van zaken</label><select id="p-nb-status"></select></div>
+              <div class="veld alleen-uitgebreid"><label for="p-nb-plan">Isolatieplan aanwezig?</label>
+                <select id="p-nb-plan"><option value="">Onbekend</option><option>Ja</option><option>Nee</option></select></div>
+              <div class="veld alleen-uitgebreid"><label for="p-nb-dossier">Dossiernummer SNN</label><input id="p-nb-dossier"></div>
+            </div>
+            <h3 class="sectie">Maatregelen voor de offerte en factuur</h3>
+            <div id="nb-maatregelen"></div>
+          </div>
         </div>
         <div class="kaart" style="margin-top:16px">
           <h2>Foto's van het gebouw</h2>
@@ -261,6 +285,7 @@
   <script src="js/keuzelijsten.js"></script>
   <script src="js/voorbeeld.js"></script>
   <script src="js/schets.js"></script>
+  <script src="js/omzetten.js"></script>
   <script src="js/opnames.js"></script>
 </body>
 </html>

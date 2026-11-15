@@ -62,6 +62,8 @@
 
   // ---------- Keuzelijsten vullen ----------
   $("status-filter").innerHTML += OPNAME_STATUS.map(function (s) { return '<option value="' + s.code + '">' + s.naam + '</option>'; }).join("");
+  $("p-nb-regeling").innerHTML = opties(NB_REGELINGEN, "– kies –");
+  $("p-nb-status").innerHTML = NB_STATUS.map(function (s) { return '<option value="' + s.code + '">' + s.naam + '</option>'; }).join("");
   $("p-status").innerHTML = OPNAME_STATUS.map(function (s) { return '<option value="' + s.code + '">' + s.naam + '</option>'; }).join("");
   $("p-gebouw").innerHTML = opties(GEBOUWTYPES, "– kies –");
   $("r-glas-huidig").innerHTML = opties(GLASSOORTEN, "– kies –");
@@ -154,14 +156,7 @@
   }
 
   // Materieel van het project: per soort of het nodig is (project of ramen), hoe vaak bij ramen, en de toelichting
-  function projectMaterieel(o) {
-    return MATERIEEL_OPNAME.map(function (m) {
-      const bijRamen = (o.ramen || []).filter(function (r) { return (r.materieel || []).indexOf(m.code) !== -1; });
-      const p = (o.materieel || {})[m.code] || {};
-      return { code: m.code, naam: m.naam, bevoegdheid: m.bevoegdheid, project: !!p.nodig, toelichting: p.toelichting || "",
-               ramen: bijRamen.map(function (r) { return r.nummer; }), nodig: !!p.nodig || bijRamen.length > 0 };
-    });
-  }
+  function projectMaterieel(o) { return opnameMaterieel(o); }
 
   // ---------- Project openen ----------
   function toonScherm(welk) {
@@ -198,8 +193,9 @@
     kiesTab("project");
     toonScherm("project");
     document.querySelectorAll("#project-scherm input, #project-scherm select, #project-scherm textarea").forEach(function (el) {
-      if (el.id !== "p-nummer") el.disabled = !magBewerken;
+      if (el.id !== "p-nummer") el.disabled = !magBewerken && !(magNbStatus && NB_PLANNER_VELDEN.indexOf(el.id) !== -1);
     });
+    document.querySelectorAll("#p-nb button").forEach(function (k) { k.disabled = !magBewerken; });
   }
 
   function vulProjectvelden() {
@@ -211,6 +207,9 @@
     zet("p-tel", p.telefoon); zet("p-mail", p.email); zet("p-adres", p.adres); zet("p-gebouw", p.gebouwtype);
     zet("p-bouwjaar", p.bouwjaar); zet("p-opnemer", p.opnemer); zet("p-opm", p.opmerkingen);
     zet("p-personen", p.personen); zet("p-duur", p.duur_uren); zet("p-bereik", p.bereikbaarheid);
+    zet("p-nb-regeling", p.nb_regeling); zet("p-nb-status", p.nb_status || ""); zet("p-nb-plan", p.nb_isolatieplan); zet("p-nb-dossier", p.nb_dossier);
+    tekenNijBegun();
+    tekenActies();
     tekenRamen();
   }
 
@@ -220,7 +219,9 @@
       telefoon: $("p-tel").value.trim(), email: $("p-mail").value.trim(), adres: $("p-adres").value.trim(),
       gebouwtype: $("p-gebouw").value, bouwjaar: $("p-bouwjaar").value, opnemer: $("p-opnemer").value,
       opmerkingen: $("p-opm").value.trim(), personen: $("p-personen").value, duur_uren: $("p-duur").value,
-      bereikbaarheid: $("p-bereik").value.trim()
+      bereikbaarheid: $("p-bereik").value.trim(),
+      nb_regeling: $("p-nb-regeling").value, nb_status: $("p-nb-status").value,
+      nb_isolatieplan: $("p-nb-plan").value, nb_dossier: $("p-nb-dossier").value.trim()
     });
     // Materieel op projectniveau
     document.querySelectorAll("#materieel .mat-rij").forEach(function (rij) {
@@ -251,6 +252,87 @@
     return true;
   }
 
+  // ---------- Nij Begun ----------
+  // De planner mag de stand van zaken en het dossiernummer bijwerken (ook al mag hij de opname zelf niet wijzigen)
+  const magNbStatus = rol === "planner";
+  const NB_PLANNER_VELDEN = ["p-nb-status", "p-nb-dossier"];
+
+  function tekenNijBegun() {
+    const nb = project.nij_begun || "";
+    document.querySelectorAll("#p-nb button").forEach(function (k) { k.classList.toggle("actief", k.dataset.nb === nb && (nb !== "" || project.nij_begun === "")); });
+    $("nb-velden").hidden = nb !== "Ja";
+    if (nb !== "Ja") return;
+    const lijst = nbMaatregelen(project);
+    const zonderCode = lijst.some(function (g) { return !g.code; });
+    $("nb-maatregelen").innerHTML = lijst.length
+      ? '<table class="tabel"><thead><tr><th>Maatregelcode</th><th>Maatregel</th><th>Waarde</th><th>Aantal</th><th>Ramen</th></tr></thead><tbody>' +
+        lijst.map(function (g) {
+          return '<tr><td>' + (g.code ? '<strong>' + esc(g.code) + '</strong>' : '<span class="rood-tekst">ontbreekt</span>') + '</td><td>' + esc(g.omschrijving) +
+                 '</td><td>' + esc(g.waarde || "–") + '</td><td>' + (g.eenheid === "m²" ? m2(g.hoeveel) : g.hoeveel + (g.hoeveel === 1 ? " stuk" : " stuks") + (g.mm ? " (" + (g.mm / 1000).toLocaleString("nl-NL", { maximumFractionDigits: 2 }) + " m)" : "")) +
+                 '</td><td>' + esc(g.ramen.join(", ")) + '</td></tr>';
+        }).join("") + '</tbody></table>' +
+        (zonderCode ? '<p class="uitleg">Niet elke maatregel heeft een code. De beheerder vult de codes uit de maatregelencatalogus in onder <strong>Beheer → Nij Begun</strong>.</p>' : "")
+      : '<p class="zacht">Nog geen ramen met nieuw glas of roosters.</p>';
+  }
+
+  document.querySelectorAll("#p-nb button").forEach(function (k) {
+    k.addEventListener("click", function () {
+      if (!magBewerken) return;
+      leesProjectvelden();
+      project.nij_begun = k.dataset.nb;
+      if (project.nij_begun === "Ja" && !project.nb_regeling) { project.nb_regeling = NB_REGELINGEN[0]; $("p-nb-regeling").value = project.nb_regeling; }
+      tekenNijBegun();
+    });
+  });
+  // Planner: stand van zaken meteen bewaren
+  NB_PLANNER_VELDEN.forEach(function (id) {
+    $(id).addEventListener("change", async function () {
+      if (magBewerken || !magNbStatus || !project || !project.id) return;
+      const o = await Opslag.haal("opnames", project.id);
+      if (!o) return;
+      o.nb_status = $("p-nb-status").value; o.nb_dossier = $("p-nb-dossier").value.trim();
+      project.nb_status = o.nb_status; project.nb_dossier = o.nb_dossier;
+      await Opslag.bewaar("opnames", o);
+      bewaardeVersie = JSON.stringify(project);
+      toast("Nij Begun bijgewerkt: " + nbStatusNaam(o.nb_status) + ".", "goed");
+    });
+  });
+
+  // ---------- PDF en omzetten naar werkopdracht ----------
+  function tekenActies() {
+    const bestaat = !!project.id;
+    $("p-pdf").hidden = !bestaat;
+    $("p-omzetten").hidden = !bestaat || ["beheerder", "planner", "opnemer"].indexOf(rol) === -1;
+    $("p-omzetten").textContent = project.werkopdracht ? "📋 Werkopdracht " + (project.werkopdracht_nummer || "") : "→ Werkopdracht maken";
+  }
+
+  async function bewaarAlsNodig() {
+    if (!magBewerken) return true;
+    leesProjectvelden();
+    if (JSON.stringify(project) === bewaardeVersie) return true;
+    return bewaarProject(true);
+  }
+
+  $("p-pdf").addEventListener("click", async function () {
+    if (!(await bewaarAlsNodig())) return;
+    location.href = "opname-pdf.html?id=" + encodeURIComponent(project.id);
+  });
+
+  $("p-omzetten").addEventListener("click", async function () {
+    if (!(await bewaarAlsNodig())) return;
+    if (project.werkopdracht) {
+      const k = await Opslag.haal("klussen", project.werkopdracht);
+      if (k) { location.href = "werkopdrachten.html?id=" + encodeURIComponent(k.id); return; }
+      // De werkopdracht is verwijderd: opnieuw maken mag
+    }
+    if (!(project.ramen || []).length && !confirm("Deze opname heeft nog geen ramen. Toch een werkopdracht maken?")) return;
+    if (!confirm("Van opname " + project.nummer + " (" + project.klant + ") een werkopdracht maken?\n\nKlant, adres, werkzaamheden, glas, roosters, materialen en gereedschap worden overgenomen. Daarna kies je in de werkopdracht de datum en de ploeg.")) return;
+    const klus = await Omzetten.maakWerkopdracht(project, rol);
+    project = await Opslag.haal("opnames", project.id);
+    bewaardeVersie = JSON.stringify(project);
+    location.href = "werkopdrachten.html?id=" + encodeURIComponent(klus.id) + "&nieuw=1";
+  });
+
   // ---------- Ramen ----------
   function raamRegel(r, i) {
     const opp = raamOppervlakte(r);
@@ -280,6 +362,7 @@
   }
 
   function tekenRamen() {
+    if (project && project.nij_begun === "Ja") tekenNijBegun();
     const ramen = project.ramen || [];
     $("tab-ramen-aantal").textContent = "(" + ramen.length + ")";
     const opp = ramen.reduce(function (t, r) { return t + raamOppervlakte(r); }, 0);
@@ -793,6 +876,7 @@
     await Voorbeeld.zorgVoorAlles();
     await Voorbeeld.zorgVoorOpname();
     await laadOpnameInstellingen();
+    await laadNijBegun();
     medewerkers = await Opslag.alle("medewerkers");
     opnames = await Opslag.alle("opnames");
     $("opnemer-filter").innerHTML += medewerkers.filter(function (m) { return groepVanFunctie(m.functie) === "opname"; })

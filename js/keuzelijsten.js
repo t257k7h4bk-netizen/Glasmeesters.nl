@@ -61,6 +61,7 @@ const WERKZAAMHEDEN = [
   "Glaslatten vervangen",
   "Nieuwe glaslatten plaatsen",
   "Kitwerkzaamheden",
+  "Ventilatieroosters plaatsen",
   "Reparatie / herstel",
   "Opname / inmeten"
 ];
@@ -284,4 +285,78 @@ function statusBevoegdheid(item, opDatum) {
   const grens = new Date(dag);
   grens.setDate(grens.getDate() + 30);
   return tot <= grens ? "bijna" : "geldig";
+}
+
+
+// ---------- Opname → werkopdracht (stap 5c) ----------
+
+// Materieel van een opname: wat bij de ramen of voor het hele project is aangevinkt
+function opnameMaterieel(o) {
+  return MATERIEEL_OPNAME.map(function (m) {
+    const bijRamen = (o.ramen || []).filter(function (r) { return (r.materieel || []).indexOf(m.code) !== -1; });
+    const p = (o.materieel || {})[m.code] || {};
+    return { code: m.code, naam: m.naam, bevoegdheid: m.bevoegdheid, project: !!p.nodig, toelichting: p.toelichting || "",
+             ramen: bijRamen.map(function (r) { return r.nummer; }), nodig: !!p.nodig || bijRamen.length > 0 };
+  });
+}
+
+// Volgend opdrachtnummer, bijv. 2026-0012 (gedeeld door werkopdrachten en opnames)
+async function nieuwOpdrachtNummer() {
+  const jaar = new Date().getFullYear();
+  const teller = (await Opslag.haal("instellingen", "teller")) || { id: "teller" };
+  const laatste = teller.jaar === jaar ? teller.laatste : 0;
+  teller.jaar = jaar;
+  teller.laatste = laatste + 1;
+  await Opslag.bewaar("instellingen", teller);
+  return jaar + "-" + String(teller.laatste).padStart(4, "0");
+}
+
+// ---------- Nij Begun (isolatiesubsidie Groningen en Noord-Drenthe) ----------
+const NB_REGELINGEN = [
+  "100% subsidie (HR++ zonder kozijn)",
+  "50% subsidie (HR++ zonder kozijn)",
+  "30% subsidie (triple glas met kozijnen)",
+  "Nog niet bekend"
+];
+const NB_STATUS = [
+  { code: "",             naam: "Nog niet gestart" },
+  { code: "offerte",      naam: "Offerte verstuurd" },
+  { code: "akkoord",      naam: "Akkoord klant" },
+  { code: "aangevraagd",  naam: "Aanvraag bij SNN ingediend" },
+  { code: "goedgekeurd",  naam: "Subsidie goedgekeurd" },
+  { code: "uitgevoerd",   naam: "Werk uitgevoerd" },
+  { code: "gefactureerd", naam: "Factuur verstuurd" },
+  { code: "uitbetaald",   naam: "Subsidie uitbetaald" }
+];
+function nbStatusNaam(code) { const s = NB_STATUS.find(function (x) { return x.code === (code || ""); }); return s ? s.naam : "Nog niet gestart"; }
+
+// Maatregelcodes uit de maatregelencatalogus van Nij Begun, in te vullen in Beheer
+// glas[glassoort] = { code, waarde }   rooster[soort] = { code, waarde }
+let NB_CODES = { glas: {}, rooster: {} };
+async function laadNijBegun() {
+  const s = await Opslag.haal("instellingen", "nijbegun");
+  NB_CODES = { glas: (s && s.glas) || {}, rooster: (s && s.rooster) || {} };
+  return NB_CODES;
+}
+
+// Maatregelen van een opname, gegroepeerd zoals ze op de offerte en factuur moeten
+function nbMaatregelen(o) {
+  const groepen = {};
+  (o.ramen || []).forEach(function (r) {
+    if (r.glas_nieuw) {
+      const c = NB_CODES.glas[r.glas_nieuw] || {};
+      const k = "glas|" + r.glas_nieuw;
+      const g = groepen[k] = groepen[k] || { code: c.code || "", waarde: c.waarde || "", omschrijving: r.glas_nieuw, eenheid: "m²", hoeveel: 0, ramen: [] };
+      g.hoeveel += raamOppervlakte(r); g.ramen.push(r.nummer);
+    }
+    const rs = roosterSoort(r);
+    if (rs && rs !== "Geen") {
+      const c = NB_CODES.rooster[rs] || {};
+      const k = "rooster|" + rs;
+      const g = groepen[k] = groepen[k] || { code: c.code || "", waarde: c.waarde || "", omschrijving: rs, eenheid: "stuks", hoeveel: 0, mm: 0, ramen: [] };
+      const n = Number(r.rooster_aantal) || 1;
+      g.hoeveel += n; g.mm += (Number(r.rooster_lengte) || 0) * n; g.ramen.push(r.nummer);
+    }
+  });
+  return Object.keys(groepen).map(function (k) { return groepen[k]; });
 }
