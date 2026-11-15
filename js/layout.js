@@ -7,7 +7,7 @@
    Rechten aanpassen? Pas de lijst "rollen" van dat tabblad aan.
    ========================================================= */
 
-const VERSIE = "Versie 0.18 – stap 5c";
+const VERSIE = "Versie 0.19 – stap C1";
 
 // Alle rollen uit het ontwerp
 const ROLLEN = {
@@ -15,20 +15,23 @@ const ROLLEN = {
   planner:    "Planner",
   opnemer:    "Opnemer",
   medewerker: "Medewerker",
-  wagenpark:  "Wagenparkbeheerder"
+  wagenpark:  "Wagenparkbeheerder",
+  administratie: "Administratie"
 };
 
 const MENU = [
   { pagina: "dashboard",      titel: "Dashboard",      icoon: "🏠", bestand: "index.html",
-    rollen: ["beheerder", "planner", "opnemer", "medewerker", "wagenpark"] },
+    rollen: ["beheerder", "planner", "opnemer", "medewerker", "wagenpark", "administratie"] },
   { pagina: "planning",       titel: "Planning",       icoon: "📅", bestand: "planning.html",
-    rollen: ["beheerder", "planner", "opnemer", "medewerker", "wagenpark"] },
+    rollen: ["beheerder", "planner", "opnemer", "medewerker", "wagenpark", "administratie"] },
   { pagina: "werkopdrachten", titel: "Werkopdrachten", icoon: "📋", bestand: "werkopdrachten.html",
-    rollen: ["beheerder", "planner", "opnemer", "medewerker"] },
+    rollen: ["beheerder", "planner", "opnemer", "medewerker", "administratie"] },
   { pagina: "opnames",        titel: "Opnames",        icoon: "📐", bestand: "opnames.html",
-    rollen: ["beheerder", "planner", "opnemer"] },
+    rollen: ["beheerder", "planner", "opnemer", "administratie"] },
+  { pagina: "tarieven",       titel: "Tarieven",       icoon: "💶", bestand: "tarieven.html",
+    rollen: ["beheerder", "administratie"] },
   { pagina: "kaart",          titel: "Kaart",          icoon: "🗺️", bestand: "kaart.html",
-    rollen: ["beheerder", "planner", "opnemer", "medewerker", "wagenpark"] },
+    rollen: ["beheerder", "planner", "opnemer", "medewerker", "wagenpark", "administratie"] },
   { pagina: "medewerkers",    titel: "Medewerkers",    icoon: "👷", bestand: "medewerkers.html",
     rollen: ["beheerder", "planner", "opnemer", "wagenpark"] },
   { pagina: "voertuigen",     titel: "Voertuigen",     icoon: "🚐", bestand: "voertuigen.html",

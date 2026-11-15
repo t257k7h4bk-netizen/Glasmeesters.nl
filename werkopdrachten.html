@@ -47,11 +47,13 @@
   <script src="js/voorbeeld.js"></script>
   <script src="js/whatsapp.js"></script>
   <script src="js/werkopdracht.js"></script>
+  <script src="js/calculatie.js"></script>
   <script>
   if (!document.body.classList.contains("geen-toegang")) {
 
     const rol = huidigeRol();
     const magBewerken = rol === "beheerder" || rol === "planner";
+    const geld = magGeldZien(rol);
     if (!magBewerken) document.getElementById("nieuw").hidden = true;
 
     let opdrachten = [], medewerkers = [], ikBen = null;
@@ -132,7 +134,7 @@
                  '<span class="opdracht-midden">' +
                    '<strong>' + esc(o.klant) + '</strong>' +
                    (o.adres ? '<span class="zacht">' + esc(o.adres) + '</span>' : "") +
-                   (((o.soort_werk || []).length || o.nij_begun) ? '<span class="tags">' + (o.nij_begun ? '<span class="tag tag-nb">Nij Begun</span>' : "") + (o.soort_werk || []).map(function (w) { return '<span class="tag">' + esc(w) + '</span>'; }).join("") + '</span>' : "") +
+                   (((o.soort_werk || []).length || o.nij_begun || (geld && o.calculatie)) ? '<span class="tags">' + (o.nij_begun ? '<span class="tag tag-nb">Nij Begun</span>' : "") + (geld && o.calculatie && o.calculatie.totalen ? '<span class="tag tag-geld">' + euro(o.calculatie.totalen.verkoop_excl, true) + ' excl.' + (o.calculatie.totalen.winst !== null && o.calculatie.totalen.winst !== undefined ? ' · winst ' + euro(o.calculatie.totalen.winst, true) : "") + '</span>' : "") + (o.soort_werk || []).map(function (w) { return '<span class="tag">' + esc(w) + '</span>'; }).join("") + '</span>' : "") +
                  '</span>' +
                  '<span class="opdracht-rechts">' +
                    '<span class="' + (o.datum ? "" : "oranje-tekst") + '">' + esc(datumTekst(o)) + '</span>' +
@@ -156,7 +158,7 @@
       toon();
     }
 
-    Werkopdracht.instellen({ magBewerken: magBewerken, magFotos: magBewerken || rol === "medewerker", toast: toast, naOpslaan: laad });
+    Werkopdracht.instellen({ magBewerken: magBewerken, magFotos: magBewerken || rol === "medewerker", toast: toast, naOpslaan: laad, naCalculatie: laad });
 
     document.getElementById("lijst").addEventListener("click", function (e) {
       const k = e.target.closest(".opdracht");

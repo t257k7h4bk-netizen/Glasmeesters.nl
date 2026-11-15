@@ -109,7 +109,7 @@ const Omzetten = (function () {
     });
     Object.keys(glas).forEach(function (soort) {
       const g = glas[soort];
-      materialen.push({ omschrijving: soort + (/glas$/i.test(soort) ? "" : " glas") + " – " + g.ruiten + " ruit" + (g.ruiten === 1 ? "" : "en") + " (raam " + g.ramen.join(", ") + ")",
+      materialen.push({ omschrijving: soort + (/glas/i.test(soort) ? "" : " glas") + " – " + g.ruiten + " ruit" + (g.ruiten === 1 ? "" : "en") + " (raam " + g.ramen.join(", ") + ")",
                         aantal: getal(g.m2, 2), eenheid: "m²" });
     });
     const roosters = {};

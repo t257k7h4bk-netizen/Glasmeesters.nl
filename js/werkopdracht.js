@@ -278,6 +278,7 @@ const Werkopdracht = (function () {
       '<form id="wo-form" method="dialog">' +
         '<div class="venster-kop">' +
           '<div><h2 id="wo-titel">Werkopdracht</h2><span class="zacht" id="wo-nummer"></span><div class="wo-opname" id="wo-opname"></div></div>' +
+          '<button type="button" class="knop tweede klein wo-geld-knop" id="wo-calc" hidden>💶 Calculatie</button>' +
           '<button type="button" class="sluit" data-wo-sluit aria-label="Sluiten">✕</button>' +
         '</div>' +
         '<div class="venster-inhoud">' +
@@ -478,6 +479,16 @@ const Werkopdracht = (function () {
       }
     });
 
+    $("wo-calc").addEventListener("click", function () {
+      if (!huidige || typeof Calculatie === "undefined") return;
+      Calculatie.open(huidige.id, { naOpslaan: function (k) {
+        huidige.calculatie = k.calculatie;
+        const i = ctx.klussen.findIndex(function (x) { return x.id === k.id; });
+        if (i !== -1) ctx.klussen[i].calculatie = k.calculatie;
+        if (ctx.toast) ctx.toast("Calculatie van opdracht " + k.nummer + " opgeslagen.", "goed");
+        if (ctx.naCalculatie) ctx.naCalculatie(k);
+      } });
+    });
     $("wo-wa-knop").addEventListener("click", function () {
       naWhatsApp = true;
       $("wo-form").requestSubmit();
@@ -816,6 +827,7 @@ const Werkopdracht = (function () {
     $("wo-titel").textContent = opdracht ? (o.klant || "Werkopdracht") : "Nieuwe werkopdracht";
     $("wo-nummer").textContent = opdracht && o.nummer ? "Opdracht " + o.nummer : "Krijgt een nummer bij opslaan";
     tekenOpnameLink(o);
+    $("wo-calc").hidden = !(opdracht && typeof Calculatie !== "undefined" && typeof magGeldZien === "function" && magGeldZien(huidigeRol()));
     $("wo-klant").value = o.klant || "";
     $("wo-status").value = o.status || (o.datum ? "gepland" : "concept");
     $("wo-tel").value = o.telefoon_klant || "";
@@ -869,7 +881,7 @@ const Werkopdracht = (function () {
     const el = $("wo-opname");
     if (!o.opname) { el.innerHTML = ""; el.hidden = true; return; }
     const rol = typeof huidigeRol === "function" ? huidigeRol() : "";
-    const magOpname = ["beheerder", "planner", "opnemer"].indexOf(rol) !== -1;
+    const magOpname = ["beheerder", "planner", "opnemer", "administratie"].indexOf(rol) !== -1;
     el.hidden = false;
     el.innerHTML =
       (o.nij_begun ? '<span class="tag tag-nb">Nij Begun' + (o.nij_begun.regeling ? ": " + esc(o.nij_begun.regeling.replace(/ \(.*\)/, "")) : "") + '</span> ' : "") +
@@ -955,6 +967,9 @@ const Werkopdracht = (function () {
 
     if (!o.nummer) o.nummer = await nieuwNummer();
     if (!o.id) o.id = opdrachtId;
+    // De calculatie wordt apart bewaard: de nieuwste versie nooit overschrijven
+    const vers = await Opslag.haal("klussen", o.id);
+    if (vers && vers.calculatie) o.calculatie = vers.calculatie;
     o.aantal_bestanden = bestanden.length;
     const bewaard = await Opslag.bewaar("klussen", o);
     isOpgeslagen = true;

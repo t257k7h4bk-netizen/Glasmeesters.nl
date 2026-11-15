@@ -360,3 +360,74 @@ function nbMaatregelen(o) {
   });
   return Object.keys(groepen).map(function (k) { return groepen[k]; });
 }
+
+// ---------- Calculatie en winst (fase C) ----------
+// Wie mag bedragen, kostprijs en winst zien?
+function magGeldZien(rol) { return rol === "beheerder" || rol === "administratie"; }
+
+const BTW_TARIEVEN = [21, 9, 0];
+const CALC_SOORTEN = { glas: "Glas", materiaal: "Materiaal", arbeid: "Arbeid", huur: "Huur materieel", vervoer: "Vervoer", overig: "Overig" };
+
+// Standaardtarieven – FICTIEF, kantoor past ze aan onder Tarieven. Alle bedragen excl. btw.
+const TARIEVEN_STANDAARD = {
+  uurloon: 45,              // kosten per uur buitendienst (loon + lasten)
+  marge: 35,                // standaard opslag op de kostprijs in %
+  btw: 21,                  // standaard btw in %
+  klein_materiaal: 3,       // % van glas en materiaal voor schroeven, afval, klein spul
+  km_standaard: 30,         // standaard afstand heen en terug per werkdag
+  glas: { "Enkel glas": 30, "Dubbel glas": 60, "HR++": 95, "HR+++": 120, "Triple glas": 140, "Gelaagd glas": 110,
+          "Gehard glas": 100, "Figuurglas": 70, "Zonwerend glas": 115, "Brandwerend glas": 300, "Glas-in-lood": 250, "Overig": 90 },
+  rooster: { "Gewoon rooster": 35, "Isolerend rooster": 65 },   // per meter
+  glaslatten: 6,            // per meter
+  kit: 3,                   // per meter
+  huur: { kraan: 650, hoogwerker: 275, steiger: 400, verreiker: 350, rolsteiger: 0, minihijskraan: 0, glaslift: 0, ladder: 0,
+          glaszuigers: 0, glasbok: 0, aanhanger: 0, mankracht: 360 },   // per dag
+  km: { bus: 0.35, bakwagen: 0.45, auto: 0.25, aanhanger: 0.10 }        // afschrijving + brandstof per km
+};
+let TARIEVEN = JSON.parse(JSON.stringify(TARIEVEN_STANDAARD));
+async function laadTarieven() {
+  const s = await Opslag.haal("instellingen", "tarieven");
+  const t = JSON.parse(JSON.stringify(TARIEVEN_STANDAARD));
+  if (s) {
+    ["uurloon", "marge", "btw", "klein_materiaal", "km_standaard", "glaslatten", "kit"].forEach(function (k) { if (s[k] !== undefined && s[k] !== "") t[k] = Number(s[k]); });
+    ["glas", "rooster", "huur", "km"].forEach(function (k) { Object.assign(t[k], s[k] || {}); });
+  }
+  TARIEVEN = t;
+  return t;
+}
+
+function euro(x, zonderCenten) {
+  return (Number(x) || 0).toLocaleString("nl-NL", { style: "currency", currency: "EUR",
+    minimumFractionDigits: zonderCenten ? 0 : 2, maximumFractionDigits: zonderCenten ? 0 : 2 });
+}
+function leesGetal(x) {
+  if (x === "" || x === null || x === undefined) return null;
+  const n = Number(String(x).replace(/\s/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", "."));
+  return isNaN(n) ? null : n;
+}
+
+// Totalen van een calculatie
+// regel: { omschrijving, soort, aantal, eenheid, prijs (begroot per eenheid), werkelijk (echte inkoop totaal, optioneel), btw }
+function calcTotalen(c) {
+  const marge = Number(c.marge) || 0;
+  let kostBegroot = 0, kostWerkelijk = 0, verkoopExcl = 0, btwBedrag = 0;
+  const perBtw = {};
+  (c.regels || []).forEach(function (r) {
+    const begroot = (Number(r.aantal) || 0) * (Number(r.prijs) || 0);
+    const werkelijk = r.werkelijk !== null && r.werkelijk !== undefined && r.werkelijk !== "" ? Number(r.werkelijk) : begroot;
+    const verkoop = begroot * (1 + marge / 100);
+    const btw = Number(r.btw === undefined ? 21 : r.btw);
+    kostBegroot += begroot; kostWerkelijk += werkelijk; verkoopExcl += verkoop;
+    btwBedrag += verkoop * btw / 100;
+    perBtw[btw] = (perBtw[btw] || 0) + verkoop * btw / 100;
+  });
+  const gefactureerd = c.gefactureerd_excl !== null && c.gefactureerd_excl !== undefined && c.gefactureerd_excl !== "" ? Number(c.gefactureerd_excl) : null;
+  return {
+    kostBegroot: kostBegroot, kostWerkelijk: kostWerkelijk,
+    verkoopExcl: verkoopExcl, btw: btwBedrag, perBtw: perBtw, verkoopIncl: verkoopExcl + btwBedrag,
+    winstVerwacht: verkoopExcl - kostBegroot,
+    gefactureerd: gefactureerd,
+    winstNetto: gefactureerd === null ? null : gefactureerd - kostWerkelijk,
+    margeEcht: gefactureerd === null || !kostWerkelijk ? null : (gefactureerd / kostWerkelijk - 1) * 100
+  };
+}

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tarieven – Glasmeesters Planner</title>
+  <meta name="theme-color" content="#2A5577">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="img/icoon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="img/icoon-180.png">
+  <link rel="stylesheet" href="css/stijl.css">
+  <style>
+    .tarief-rij { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--lijn); }
+    .tarief-rij label { flex: 1; font-weight: 500; }
+    .tarief-rij .invoer { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .tarief-rij input { width: 110px; text-align: right; }
+    .tarief-rij .eenheid { color: var(--tekst-zacht); min-width: 70px; font-size: 14px; }
+    .tarief-rij.anders input { border-color: var(--goud-donker); background: #FFFBEF; }
+    .tarieven-knoppen { position: sticky; bottom: 0; background: var(--achtergrond); padding: 12px 0; display: flex; gap: 10px; flex-wrap: wrap; z-index: 2; }
+  </style>
+</head>
+<body data-pagina="tarieven">
+
+  <main class="inhoud">
+    <h1>Tarieven</h1>
+    <p class="ondertitel">Standaardprijzen voor de calculatie. Alle bedragen <strong>excl. btw</strong>. Alleen zichtbaar voor de beheerder en de administratie.</p>
+    <div class="melding zichtbaar waarschuwing" id="fictief">De bedragen hieronder zijn <strong>voorbeelden (fictief)</strong>. Vervang ze door de echte prijzen van Glasmeesters.</div>
+
+    <div class="kaarten" id="tarieven"></div>
+
+    <div class="tarieven-knoppen">
+      <button class="knop" id="opslaan">Opslaan</button>
+      <button class="knop tweede" id="standaard">Terug naar de voorbeeldbedragen</button>
+    </div>
+    <div class="melding" id="melding"></div>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/layout.js"></script>
+  <script src="js/opslag.js"></script>
+  <script src="js/keuzelijsten.js"></script>
+  <script>
+  if (!document.body.classList.contains("geen-toegang")) (async function () {
+    function esc(t) { return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+    function toon(soort, tekst) { const el = document.getElementById("melding"); el.className = "melding zichtbaar " + soort; el.textContent = tekst; el.scrollIntoView({ block: "center" }); }
+    function getal(x) { return x === undefined || x === null ? "" : String(x).replace(".", ","); }
+
+    // Welke velden staan er op het blad: [groep, sleutel, label, eenheid]
+    function velden() {
+      const lijst = [];
+      lijst.push(["Algemeen", null, null, null,
+        [["uurloon", "Kosten per uur buitendienst (loon en lasten)", "€ / uur"],
+         ["marge", "Standaard winstmarge (opslag op de kostprijs)", "%"],
+         ["btw", "Standaard btw", "%"],
+         ["klein_materiaal", "Klein materiaal en afvoer (van glas en materiaal)", "%"],
+         ["km_standaard", "Standaard afstand heen en terug per klus", "km"]]]);
+      lijst.push(["Glas – inkoop per m²", "glas", null, "€ / m²", GLASSOORTEN.map(function (g) { return [g, g]; })]);
+      lijst.push(["Materialen", null, null, null,
+        [["rooster.Gewoon rooster", "Gewoon ventilatierooster", "€ / m"],
+         ["rooster.Isolerend rooster", "Isolerend ventilatierooster", "€ / m"],
+         ["glaslatten", "Glaslatten", "€ / m"],
+         ["kit", "Kit", "€ / m"]]]);
+      lijst.push(["Huur materieel – per dag", "huur", null, "€ / dag", MATERIEEL_OPNAME.map(function (m) { return [m.code, m.naam]; })]);
+      lijst.push(["Vervoer – afschrijving en brandstof per km", "km", null, "€ / km", Object.keys(VOERTUIG_SOORTEN).map(function (k) { return [k, VOERTUIG_SOORTEN[k]]; })]);
+      return lijst;
+    }
+    function haalWaarde(t, pad) { return pad.split(".").reduce(function (o, k) { return o ? o[k] : undefined; }, t); }
+    function zetWaarde(t, pad, w) { const d = pad.split("."); const laatste = d.pop(); d.reduce(function (o, k) { return o[k] = o[k] || {}; }, t)[laatste] = w; }
+
+    function teken(t) {
+      document.getElementById("tarieven").innerHTML = velden().map(function (g) {
+        return '<section class="kaart"><h2>' + esc(g[0]) + '</h2>' + g[4].map(function (v) {
+          const pad = g[1] ? g[1] + "." + v[0] : v[0];
+          const eenheid = g[3] || v[2];
+          const w = haalWaarde(t, pad), std = haalWaarde(TARIEVEN_STANDAARD, pad);
+          const id = "t-" + pad.replace(/[^a-z0-9]/gi, "_");
+          return '<div class="tarief-rij' + (w !== std ? " anders" : "") + '"><label for="' + id + '">' + esc(v[1]) + '</label>' +
+                 '<div class="invoer">' + (eenheid.indexOf("€") === 0 ? "€" : "") +
+                 '<input id="' + id + '" data-pad="' + esc(pad) + '" inputmode="decimal" value="' + esc(getal(w)) + '">' +
+                 '<span class="eenheid">' + esc(eenheid.replace("€ ", "")) + '</span></div></div>';
+        }).join("") + '</section>';
+      }).join("");
+    }
+
+    let t = await laadTarieven();
+    teken(t);
+    document.getElementById("fictief").hidden = !!(await Opslag.haal("instellingen", "tarieven"));
+
+    document.getElementById("opslaan").addEventListener("click", async function () {
+      const nieuw = JSON.parse(JSON.stringify(t));
+      let fout = "";
+      document.querySelectorAll("[data-pad]").forEach(function (inp) {
+        const w = leesGetal(inp.value);
+        if (w === null || w < 0) { fout = fout || inp.closest(".tarief-rij").querySelector("label").textContent; return; }
+        zetWaarde(nieuw, inp.dataset.pad, w);
+      });
+      if (fout) { toon("fout", "Vul een geldig bedrag in bij: " + fout + "."); return; }
+      nieuw.id = "tarieven";
+      nieuw.bijgewerkt_op = new Date().toISOString();
+      await Opslag.bewaar("instellingen", nieuw);
+      await Opslag.bewaar("logboek", { wanneer: new Date().toISOString(), rol: huidigeRol(), actie: "Tarieven opgeslagen", details: "Tarievenblad bijgewerkt" });
+      t = await laadTarieven();
+      teken(t);
+      document.getElementById("fictief").hidden = true;
+      toon("goed", "De tarieven zijn opgeslagen. Nieuwe calculaties gebruiken deze bedragen; bestaande calculaties veranderen niet (gebruik daar \"Opnieuw berekenen\").");
+    });
+    document.getElementById("standaard").addEventListener("click", async function () {
+      if (!confirm("Alle tarieven terugzetten naar de voorbeeldbedragen?")) return;
+      await Opslag.verwijder("instellingen", "tarieven");
+      t = await laadTarieven();
+      teken(t);
+      document.getElementById("fictief").hidden = false;
+      toon("info", "De voorbeeldbedragen staan er weer.");
+    });
+  })();
+  </script>
+</body>
+</html>
