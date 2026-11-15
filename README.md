@@ -24,6 +24,7 @@ glasopnames, voertuigen en gereedschap in één programma.
 | `js/schets.js` | Schets van een raam (vorm, maatlijnen, vakken, eigen tekening) als SVG en PNG |
 | `js/omzetten.js` | Opname met één knop omzetten naar een werkopdracht |
 | `js/calculatie.js` | Calculatie per werkopdracht: kostprijs, echte inkoop, marge, verkoopprijs, factuur en nettowinst |
+| `financieel.html`, `js/financieel.js`, `css/financieel.css` | Omzet, kosten en winst per week, maand en jaar |
 | `tarieven.html` | Tarievenblad (uurloon, glas, materialen, huur, vervoer, marge, btw) |
 | `opname-pdf.html`, `js/opname-pdf.js`, `css/pdf.css` | Opnameformulier op A4, te bewaren als PDF |
 | `beheer.html` | Instellingen (dagdelen), back-up downloaden/terugzetten, alles wissen |
@@ -52,7 +53,7 @@ glasopnames, voertuigen en gereedschap in één programma.
 - [x] Ventilatieroosters en weergave Snel/Uitgebreid
 - [x] Stap 5c – Omzetten naar werkopdracht, PDF, Nij Begun (maatregelcodes, stand van zaken)
 - [x] Stap C1 – Rol Administratie, tarievenblad, calculatie per werkopdracht
-- [ ] Stap C2 – Overzicht winst per week, maand en jaar
+- [x] Stap C2 – Overzicht winst per week, maand en jaar
 - [ ] Stap C3 – Nij Begun: maximumprijzen, subsidie en eigen bijdrage, afvinklijst
 
 Tijdens het bouwen worden gegevens alleen lokaal in de browser opgeslagen en gebruiken we

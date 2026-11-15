@@ -1,0 +1,47 @@
+/* =========================================================
+   Glasmeesters Planner – financieel overzicht (fase C2)
+   Kleuren gecontroleerd op kleurenblindheid (dataviz-validator):
+   kosten goud, winst blauw, verlies rood.
+   ========================================================= */
+:root { --fin-kosten: #D3A12A; --fin-winst: #2A6BAE; --fin-verlies: #C2412F; }
+
+.fin-filters { align-items: center; gap: 16px; flex-wrap: wrap; }
+.fin-jaar { display: flex; align-items: center; gap: 10px; font-size: 18px; }
+.fin-jaar .knop { min-width: 44px; font-size: 18px; }
+
+.fin-tegels { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.fin-tegel { background: var(--wit); border: 1px solid var(--lijn); border-radius: var(--rand); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.fin-tegel-label { color: var(--tekst-zacht); font-size: 14px; font-weight: 600; }
+.fin-tegel strong { font-size: 24px; color: var(--tekst); font-variant-numeric: tabular-nums; }
+.fin-tegel-onder { color: var(--tekst-zacht); font-size: 13px; }
+.fin-tegel.winst { border-left: 4px solid var(--fin-winst); }
+.fin-tegel.verlies { border-left: 4px solid var(--fin-verlies); }
+.fin-vergelijk { font-weight: 600; color: var(--tekst); }
+
+.fin-grafiek-kaart { position: relative; }
+.fin-grafiek-kop { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.fin-grafiek-kop h2 { margin: 0; }
+.fin-legenda { display: flex; gap: 14px; font-size: 14px; color: var(--tekst-zacht); }
+.fin-legenda i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.fin-grafiek svg { width: 100%; height: auto; display: block; touch-action: manipulation; }
+.fin-raster { stroke: var(--lijn); stroke-width: 1; }
+.fin-raster.nul { stroke: #9AA5B1; }
+.fin-as { fill: var(--tekst-zacht); font-size: 13px; font-family: var(--lettertype); }
+.fin-kosten { fill: var(--fin-kosten); }
+.fin-winst { fill: var(--fin-winst); }
+.fin-verlies { fill: var(--fin-verlies); }
+.fin-raak { fill: transparent; cursor: pointer; }
+.fin-kolom:hover .fin-raak, .fin-kolom.gekozen .fin-raak { fill: rgba(42, 85, 119, 0.07); }
+.fin-tip { position: absolute; z-index: 3; min-width: 200px; background: var(--wit); border: 1px solid var(--lijn); border-radius: 8px;
+           box-shadow: 0 4px 14px rgba(0,0,0,.14); padding: 8px 12px; font-size: 14px; pointer-events: none; }
+.fin-tip div { display: flex; justify-content: space-between; gap: 16px; font-variant-numeric: tabular-nums; }
+.fin-tip strong { display: block; margin-bottom: 4px; }
+.fin-tip .rood { color: var(--rood); font-weight: 600; }
+
+.fin-tabel-houder { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.fin-tabel .getal { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fin-tabel tr.klikbaar { cursor: pointer; }
+.fin-tabel tr.klikbaar:hover td, .fin-tabel tr.gekozen td { background: #EEF3F8; }
+.fin-tabel tr.leeg td { color: var(--tekst-zacht); }
+.fin-tabel tfoot td { font-weight: 700; border-top: 2px solid var(--lijn); }
+.fin-lijst { margin: 0; padding-left: 20px; }

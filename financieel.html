@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Financieel – Glasmeesters Planner</title>
+  <meta name="theme-color" content="#2A5577">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="img/icoon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="img/icoon-180.png">
+  <link rel="stylesheet" href="css/stijl.css">
+  <link rel="stylesheet" href="css/financieel.css">
+</head>
+<body data-pagina="financieel">
+
+  <main class="inhoud">
+    <div class="paginakop">
+      <div>
+        <h1>Financieel</h1>
+        <p class="ondertitel">Omzet, kosten en winst van de werkopdrachten. Bedragen excl. btw. Alleen voor de beheerder en de administratie.</p>
+      </div>
+    </div>
+
+    <div class="filterbalk fin-filters">
+      <div class="knoppengroep" role="group" aria-label="Indeling" id="indeling">
+        <button type="button" data-indeling="week">Per week</button>
+        <button type="button" data-indeling="maand" class="actief">Per maand</button>
+        <button type="button" data-indeling="jaar">Per jaar</button>
+      </div>
+      <div class="fin-jaar" id="jaar-keuze">
+        <button type="button" class="knop tweede klein" id="jaar-terug" aria-label="Vorig jaar">‹</button>
+        <strong id="jaar"></strong>
+        <button type="button" class="knop tweede klein" id="jaar-verder" aria-label="Volgend jaar">›</button>
+      </div>
+    </div>
+
+    <div class="fin-tegels" id="tegels"></div>
+
+    <section class="kaart fin-grafiek-kaart">
+      <div class="fin-grafiek-kop">
+        <h2 id="grafiek-titel">Winst per maand</h2>
+        <div class="fin-legenda" id="legenda">
+          <span><i style="background:var(--fin-kosten)"></i>Kosten</span>
+          <span><i style="background:var(--fin-winst)"></i>Winst</span>
+          <span><i style="background:var(--fin-verlies)"></i>Verlies</span>
+        </div>
+      </div>
+      <p class="uitleg">De hele staaf is de omzet (gefactureerd). Onderin de kosten, bovenop de winst. Tik op een staaf of een regel in de tabel voor de opdrachten.</p>
+      <div class="fin-grafiek" id="grafiek"></div>
+      <div class="fin-tip" id="tip" hidden></div>
+    </section>
+
+    <section class="kaart" style="margin-top:16px">
+      <h2 id="tabel-titel">Per maand</h2>
+      <div class="fin-tabel-houder"><table class="tabel fin-tabel" id="tabel"></table></div>
+    </section>
+
+    <section class="kaart" style="margin-top:16px" id="detail-kaart" hidden>
+      <h2 id="detail-titel">Opdrachten</h2>
+      <div class="fin-tabel-houder"><table class="tabel fin-tabel" id="detail"></table></div>
+    </section>
+
+    <section class="kaart" style="margin-top:16px">
+      <h2>Aandacht</h2>
+      <div id="aandacht"></div>
+    </section>
+  </main>
+
+  <script src="js/layout.js"></script>
+  <script src="js/opslag.js"></script>
+  <script src="js/keuzelijsten.js"></script>
+  <script src="js/voorbeeld.js"></script>
+  <script src="js/financieel.js"></script>
+</body>
+</html>

@@ -7,7 +7,7 @@
    Rechten aanpassen? Pas de lijst "rollen" van dat tabblad aan.
    ========================================================= */
 
-const VERSIE = "Versie 0.19 – stap C1";
+const VERSIE = "Versie 0.20 – stap C2";
 
 // Alle rollen uit het ontwerp
 const ROLLEN = {
@@ -28,6 +28,8 @@ const MENU = [
     rollen: ["beheerder", "planner", "opnemer", "medewerker", "administratie"] },
   { pagina: "opnames",        titel: "Opnames",        icoon: "📐", bestand: "opnames.html",
     rollen: ["beheerder", "planner", "opnemer", "administratie"] },
+  { pagina: "financieel",     titel: "Financieel",     icoon: "📊", bestand: "financieel.html",
+    rollen: ["beheerder", "administratie"] },
   { pagina: "tarieven",       titel: "Tarieven",       icoon: "💶", bestand: "tarieven.html",
     rollen: ["beheerder", "administratie"] },
   { pagina: "kaart",          titel: "Kaart",          icoon: "🗺️", bestand: "kaart.html",

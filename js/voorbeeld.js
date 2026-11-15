@@ -350,7 +350,82 @@ const Voorbeeld = (function () {
     return true;
   }
 
+  // ----- Fictieve afgeronde opdrachten met calculatie (voor het winstoverzicht, fase C2) -----
+  async function zorgVoorFinancieel() {
+    const vlag = (await Opslag.haal("instellingen", "voorbeeld")) || { id: "voorbeeld" };
+    if (vlag.financieel) return false;
+    let zaad = 7;
+    const toeval = function () { zaad = (zaad * 9301 + 49297) % 233280; return zaad / 233280; };
+    const tussen = function (a, b) { return a + toeval() * (b - a); };
+    const KLANTEN = ["Familie Mulder", "Familie de Boer", "Familie Smit", "Familie Bos", "Familie Meijer", "Familie de Groot",
+      "Familie Hoekstra", "Familie Veenstra", "Familie Kuipers", "Familie Postma", "Familie Wiersma", "Familie Brouwer",
+      "VvE De Linde (fictief)", "Kantoor Noordzijde (fictief)", "Familie Zijlstra", "Familie van Dijk"];
+    const PLAATSEN = ["Groningen", "Haren", "Hoogezand", "Leek", "Zuidhorn", "Winsum", "Bedum", "Ten Boer"];
+    const vandaag = new Date();
+    const lijst = [];
+    // 2025: ongeveer 1 per maand; 2026: 2 tot 4 per maand tot vandaag
+    for (let jaar = vandaag.getFullYear() - 1; jaar <= vandaag.getFullYear(); jaar++) {
+      for (let maand = 0; maand < 12; maand++) {
+        const aantal = jaar < vandaag.getFullYear() ? 1 + Math.floor(toeval() * 2) : 2 + Math.floor(toeval() * 3);
+        for (let i = 0; i < aantal; i++) {
+          const d = new Date(jaar, maand, 2 + Math.floor(toeval() * 25));
+          if (d.getDay() === 0) d.setDate(d.getDate() + 1);
+          if (d.getDay() === 6) d.setDate(d.getDate() + 2);
+          if (d >= vandaag) continue;
+          lijst.push(d);
+        }
+      }
+    }
+    lijst.sort(function (a, b) { return a - b; });
+    for (let n = 0; n < lijst.length; n++) {
+      const d = lijst[n];
+      const datum = iso(d);
+      const dagenGeleden = (vandaag - d) / 86400000;
+      const m2 = Math.round(tussen(2.5, 16) * 100) / 100;
+      const glas = toeval() < 0.7 ? "HR++" : toeval() < 0.6 ? "HR+++" : "Triple glas";
+      const prijsGlas = { "HR++": 95, "HR+++": 120, "Triple glas": 140 }[glas];
+      const personen = toeval() < 0.6 ? 2 : 3;
+      const uren = Math.round(tussen(4, 16) * 2) / 2;
+      const regels = [
+        { soort: "glas", omschrijving: glas + " glas", aantal: m2, eenheid: "m²", prijs: prijsGlas, werkelijk: null, btw: 21 },
+        { soort: "materiaal", omschrijving: "Glaslatten en kit", aantal: Math.round(m2 * 4), eenheid: "m", prijs: 9, werkelijk: null, btw: 21 },
+        { soort: "arbeid", omschrijving: "Arbeid: " + personen + " personen × " + String(uren).replace(".", ",") + " uur", aantal: personen * uren, eenheid: "uur", prijs: 45, werkelijk: null, btw: 21 },
+        { soort: "vervoer", omschrijving: "Vervoer bus – heen en terug", aantal: 30, eenheid: "km", prijs: 0.35, werkelijk: null, btw: 21 }
+      ];
+      if (toeval() < 0.15) regels.push({ soort: "huur", omschrijving: "Hoogwerker", aantal: 1, eenheid: "dag", prijs: 275, werkelijk: null, btw: 21 });
+      // Soms viel de inkoop hoger of lager uit
+      if (toeval() < 0.4) regels[0].werkelijk = Math.round(m2 * prijsGlas * tussen(0.9, 1.25) * 100) / 100;
+      const marge = [25, 30, 35, 40][Math.floor(toeval() * 4)];
+      const calc = { regels: regels, marge: marge, factuurnummer: "", factuurdatum: "", notitie: "Fictief voorbeeld", gefactureerd_excl: null };
+      const t = calcTotalen(calc);
+      if (dagenGeleden > 10) {
+        // Meestal rond de verkoopprijs gefactureerd; af en toe korting (een paar keer met verlies)
+        const factor = toeval() < 0.08 ? tussen(0.62, 0.75) : tussen(0.93, 1.03);
+        calc.gefactureerd_excl = Math.round(t.verkoopExcl * factor / 5) * 5;
+        const fd = new Date(d); fd.setDate(fd.getDate() + 3 + Math.floor(toeval() * 7));
+        calc.factuurdatum = iso(fd > vandaag ? vandaag : fd);
+        calc.factuurnummer = "F" + d.getFullYear() + "-" + String(n + 1).padStart(4, "0");
+      }
+      const t2 = calcTotalen(calc);
+      calc.totalen = { kost: Math.round(t2.kostWerkelijk * 100) / 100, verkoop_excl: Math.round(t2.verkoopExcl * 100) / 100,
+                       verkoop_incl: Math.round(t2.verkoopIncl * 100) / 100, winst: t2.winstNetto === null ? null : Math.round(t2.winstNetto * 100) / 100 };
+      calc.bijgewerkt_op = new Date().toISOString();
+      const klant = KLANTEN[Math.floor(toeval() * KLANTEN.length)];
+      await Opslag.bewaar("klussen", {
+        datum: datum, start: "07:30", eind: uren > 8 ? "16:30" : "12:00", klant: klant,
+        adres: "Voorbeeldstraat " + (1 + Math.floor(toeval() * 120)) + ", " + PLAATSEN[Math.floor(toeval() * PLAATSEN.length)],
+        werkzaamheden: m2.toString().replace(".", ",") + " m² " + glas + " plaatsen (fictief voorbeeld)",
+        medewerkers: [], soort_werk: [glas === "Triple glas" ? "Triple glas plaatsen" : glas + " glas plaatsen"], soort_glas: glas,
+        status: "klaar", voorbeeld: true, voorbeeld_financieel: true, calculatie: calc
+      });
+    }
+    vlag.financieel = true;
+    await Opslag.bewaar("instellingen", vlag);
+    return true;
+  }
+
   return {
+    zorgVoorFinancieel: zorgVoorFinancieel,
     zorgVoorOpname: zorgVoorOpname,
     zorgVoorMedewerkers: zorgVoorMedewerkers,
     herstelMedewerkers: herstelMedewerkers,
