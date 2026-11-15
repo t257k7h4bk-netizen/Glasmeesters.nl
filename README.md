@@ -40,7 +40,8 @@ glasopnames, voertuigen en gereedschap in één programma.
 - [x] Stap 4b – Automatische waarschuwingen en blokkades
 - [x] Stap 4c – Voertuigenbeheer
 - [x] Stap 4d – Gereedschapsbeheer
-- [ ] Stap 4e – Meldingen op het dashboard
+- [x] Stap 4e – Meldingen op het dashboard
+- [ ] Fase 5 – Glasopnames en inmeten
 
 Tijdens het bouwen worden gegevens alleen lokaal in de browser opgeslagen en gebruiken we
 uitsluitend fictieve gegevens.

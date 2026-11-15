@@ -67,6 +67,7 @@
     const klussen = await Opslag.alle("klussen");
     const afwezigheid = await Opslag.alle("afwezigheid");
     const voertuigen = await Opslag.alle("voertuigen");
+    const gereedschap = await Opslag.alle("gereedschap");
     await Werkopdracht.laadGegevens();
 
     const actief = medewerkers.filter(function (m) { return m.actief; });
@@ -184,8 +185,34 @@
     html += tegel({ label: "Voertuigen " + dagNaam(dag1), getal: inGebruik + " / " + wagens.length,
                     status: nietInzetbaar ? "oranje" : "groen",
                     tekst: "in gebruik" + (nietInzetbaar ? " · " + nietInzetbaar + " niet inzetbaar" : "") });
-    html += tegel({ label: "APK en onderhoud", getal: "–", status: "grijs", tekst: "volgt in fase 4" });
-    html += tegel({ label: "Gereedschapskeuringen", getal: "–", status: "grijs", tekst: "volgt in fase 4" });
+    // Wagenpark: APK, verzekering en onderhoud
+    const zienMaterieel = rol !== "opnemer";
+    const vMeldingen = [];
+    voertuigen.forEach(function (v) {
+      voertuigMeldingen(v).forEach(function (m) { if (m.niveau === "rood" || m.niveau === "oranje") vMeldingen.push({ v: v, m: m }); });
+    });
+    const vRood = vMeldingen.filter(function (x) { return x.m.niveau === "rood"; }).length;
+    const gMeldingen = [];
+    gereedschap.forEach(function (g) {
+      gereedschapMeldingen(g).forEach(function (m) { if (m.niveau === "rood" || m.niveau === "oranje") gMeldingen.push({ g: g, m: m }); });
+    });
+    const gKeuring = gMeldingen.filter(function (x) { return x.m.soort === "keuring"; });
+    const gDefect = gereedschap.filter(function (g) { return g.status === "defect"; }).length;
+    if (zienMaterieel) {
+      html += tegel({
+        label: "APK, verzekering en onderhoud", getal: vMeldingen.length,
+        status: vRood ? "rood" : vMeldingen.length ? "oranje" : "groen",
+        tekst: vMeldingen.length ? (vRood ? vRood + " verlopen · " : "") + (vMeldingen.length - vRood) + " binnen 30 dagen" : "alles in orde",
+        link: "voertuigen.html"
+      });
+      html += tegel({
+        label: "Gereedschapskeuringen", getal: gKeuring.length,
+        status: gMeldingen.some(function (x) { return x.m.niveau === "rood"; }) ? "rood" : gKeuring.length ? "oranje" : "groen",
+        tekst: gKeuring.filter(function (x) { return x.m.niveau === "rood"; }).length + " verlopen · " +
+               gKeuring.filter(function (x) { return x.m.niveau === "oranje"; }).length + " binnen 30 dagen" + (gDefect ? " · " + gDefect + " defect" : ""),
+        link: "gereedschap.html"
+      });
+    }
     html += tegel({ label: "Glasopnames", getal: "–", status: "grijs", tekst: "volgt in fase 5" });
     document.getElementById("tegels").innerHTML = html;
 
@@ -223,7 +250,37 @@
           "</strong> verloopt op " + new Date(x.b.geldig_tot + "T00:00:00").toLocaleDateString("nl-NL", { day: "numeric", month: "long" }), "medewerkers.html");
       });
     }
-    document.getElementById("acties").innerHTML = acties || '<p class="leeg-tekst"><span class="stip groen"></span> Niets dringends. Alles in orde.</p>';
+    // Voertuigen en gereedschap
+    if (zienMaterieel) {
+      vMeldingen.forEach(function (x) {
+        acties += regel(x.m.niveau, "<strong>" + esc(x.v.naam) + "</strong>: " + esc(x.m.tekst), "voertuigen.html?id=" + x.v.id);
+      });
+      gMeldingen.forEach(function (x) {
+        acties += regel(x.m.niveau, "<strong>" + esc(x.g.naam) + "</strong>: " + esc(x.m.tekst), "gereedschap.html?id=" + x.g.id);
+      });
+    }
+
+    // Rood bovenaan, dan oranje; bij een lange lijst eerst de eerste 10
+    const items = acties.split('<a class="actieregel"').filter(Boolean).map(function (x) { return '<a class="actieregel"' + x; });
+    const rang = function (x) { return x.indexOf("stip rood") !== -1 ? 0 : x.indexOf("stip oranje") !== -1 ? 1 : 2; };
+    items.sort(function (a, b) { return rang(a) - rang(b); });
+    const MAX = 10;
+    let lijstHtml = items.slice(0, MAX).join("");
+    if (items.length > MAX) {
+      lijstHtml += '<div class="meer" hidden>' + items.slice(MAX).join("") + '</div>' +
+        '<button type="button" class="meer-knop">Toon alle ' + items.length + ' meldingen</button>';
+    }
+    const actiesEl = document.getElementById("acties");
+    actiesEl.innerHTML = lijstHtml || '<p class="leeg-tekst"><span class="stip groen"></span> Niets dringends. Alles in orde.</p>';
+    const meerKnop = actiesEl.querySelector(".meer-knop");
+    if (meerKnop) meerKnop.addEventListener("click", function () {
+      actiesEl.querySelector(".meer").hidden = false;
+      meerKnop.remove();
+    });
+    const telRood = items.filter(function (x) { return rang(x) === 0; }).length;
+    const telOranje = items.filter(function (x) { return rang(x) === 1; }).length;
+    document.querySelector("#acties").previousElementSibling.textContent = "Actie nodig" +
+      (items.length ? " (" + telRood + " rood · " + telOranje + " oranje)" : "");
 
     toonDagplanning(dag1, k1, "Planning " + dagNaam(dag1));
 
