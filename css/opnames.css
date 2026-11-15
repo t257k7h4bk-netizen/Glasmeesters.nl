@@ -65,3 +65,33 @@
   .velden-3 { grid-template-columns: 1fr; }
   .project-acties { width: 100%; justify-content: space-between; }
 }
+
+/* ---------- Foto's en schets (stap 5b) ---------- */
+.gevelfotos { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.gevel-tegel { border: 1px solid var(--lijn); border-radius: var(--rand); padding: 12px; background: var(--achtergrond); }
+.gevel-tegel-kop { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.gevel-tegel .bestanden { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+
+.schets-en-fotos { display: grid; grid-template-columns: 300px 1fr; gap: 18px; align-items: start; }
+.schets-blok { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.schets-mini { width: 300px; padding: 0; border: 1px solid var(--lijn); border-radius: 8px; background: #fff; cursor: pointer; overflow: hidden; }
+.schets-mini svg { display: block; width: 100%; height: auto; }
+.foto-blok-raam .bestanden { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+
+.raam-links { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; }
+.raam-mini { width: 72px; display: block; border: 1px solid var(--lijn); border-radius: 6px; overflow: hidden; background: #fff; }
+.raam-mini svg { display: block; width: 100%; height: auto; }
+
+.schets-venster { width: min(1100px, 98vw); max-height: 96vh; }
+.schets-balk { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+.schets-balk .ruimte { flex: 1; }
+.mini-invoer { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+.mini-invoer input { width: 64px; padding: 6px 8px; }
+.schets-doek { border: 2px solid var(--lijn); border-radius: 10px; background: #fff; overflow: hidden; }
+.schets-doek svg { display: block; width: 100%; height: auto; max-height: calc(96vh - 300px); }
+.schets-doek.tekenen { touch-action: none; cursor: crosshair; border-color: var(--goud); }
+
+@media (max-width: 760px) {
+  .schets-en-fotos { grid-template-columns: 1fr; }
+  .schets-mini { width: 100%; }
+}

@@ -73,6 +73,12 @@
           </div>
           <div class="veld"><label for="p-opm">Algemene opmerkingen</label><textarea id="p-opm" rows="3" class="vol"></textarea></div>
         </div>
+        <div class="kaart" style="margin-top:16px">
+          <h2>Foto's van het gebouw</h2>
+          <p class="uitleg">Per gevel een of meer foto's, zodat iedereen weet hoe het pand eruitziet en hoe het bereikbaar is.</p>
+          <div class="gevelfotos" id="gevelfotos"></div>
+          <input type="file" id="gevel-bestand" accept="image/*" multiple hidden>
+        </div>
       </div>
 
       <!-- Tab: ramen -->
@@ -164,7 +170,19 @@
         <div class="veld"><label>Benodigd materieel voor dit raam</label><div class="werkvakjes" id="r-materieel"></div></div>
         <div class="veld"><label for="r-bereik">Bereikbaarheid van dit raam</label><input id="r-bereik" class="vol" placeholder="Bijv. alleen van buitenaf, boven de serre"></div>
         <div class="veld"><label for="r-opm">Opmerkingen</label><textarea id="r-opm" rows="2" class="vol"></textarea></div>
-        <p class="zacht">Foto's per raam en de schetsfunctie volgen in stap 5b.</p>
+        <h3 class="sectie">Schets en foto's</h3>
+        <div class="schets-en-fotos">
+          <div class="schets-blok">
+            <button type="button" class="schets-mini" id="r-schets-mini" aria-label="Schets bekijken of bewerken"></button>
+            <button type="button" class="knop tweede klein alleen-opnemer" id="r-schets-knop">✏️ Schets bewerken</button>
+          </div>
+          <div class="foto-blok-raam">
+            <div class="bestanden" id="r-fotos"></div>
+            <label class="knop tweede klein alleen-opnemer" for="r-foto-bestand">📷 Foto maken of kiezen</label>
+            <input type="file" id="r-foto-bestand" accept="image/*" multiple hidden>
+            <span class="zacht" id="r-foto-bezig"></span>
+          </div>
+        </div>
         <div class="melding" id="r-melding"></div>
       </div>
       <div class="venster-voet alleen-opnemer">
@@ -177,12 +195,53 @@
     </form>
   </dialog>
 
+  <!-- ============ SCHETS ============ -->
+  <dialog id="schets-venster" class="venster schets-venster">
+    <div class="venster-kop">
+      <h2 id="s-titel">Schets</h2>
+      <button type="button" class="sluit" data-schets-sluit aria-label="Sluiten">✕</button>
+    </div>
+    <div class="venster-inhoud">
+      <div class="schets-balk">
+        <div class="keuzeknoppen" id="s-vorm"></div>
+      </div>
+      <div class="schets-balk">
+        <label class="mini-invoer">Vakken naast elkaar <input type="number" id="s-kolommen" min="1" max="12" inputmode="numeric"></label>
+        <label class="mini-invoer">Vakken boven elkaar <input type="number" id="s-rijen" min="1" max="12" inputmode="numeric"></label>
+        <span class="ruimte"></span>
+        <div class="knoppengroep klein-groep" id="s-gereedschap">
+          <button type="button" data-hulp="kijk" class="actief">✋ Kijken</button>
+          <button type="button" data-hulp="maat">📏 Maatlijn</button>
+          <button type="button" data-hulp="tekst">🔤 Tekst</button>
+          <button type="button" data-hulp="pen">✏️ Pen</button>
+        </div>
+        <button type="button" class="knop tweede klein" id="s-terug">↶ Ongedaan</button>
+        <button type="button" class="knop gevaar klein" id="s-wis">Wis eigen tekening</button>
+      </div>
+      <p class="zacht" id="s-uitleg">De vorm en de maten komen uit het raamformulier. Kies een hulpmiddel om iets toe te voegen.</p>
+      <div class="schets-doek" id="s-doek"></div>
+    </div>
+    <div class="venster-voet">
+      <span class="ruimte"></span>
+      <button type="button" class="knop tweede" data-schets-sluit>Annuleren</button>
+      <button type="button" class="knop alleen-opnemer" id="s-opslaan">Schets gebruiken</button>
+    </div>
+  </dialog>
+
+  <!-- Foto groot bekijken -->
+  <dialog id="kijker" class="kijker">
+    <button type="button" class="sluit kijker-sluit" aria-label="Sluiten">✕</button>
+    <img id="kijker-img" alt="">
+    <div class="kijker-naam" id="kijker-naam"></div>
+  </dialog>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="js/layout.js"></script>
   <script src="js/opslag.js"></script>
   <script src="js/keuzelijsten.js"></script>
   <script src="js/voorbeeld.js"></script>
+  <script src="js/schets.js"></script>
   <script src="js/opnames.js"></script>
 </body>
 </html>

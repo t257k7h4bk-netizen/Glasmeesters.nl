@@ -21,6 +21,14 @@
   let huidigRaam = null;         // index in project.ramen, of -1 voor nieuw
   let raamKeuzes = {};           // waarden van de keuzeknoppen in het raamformulier
   let indeling = "nummer";
+  let projectBestanden = [];     // foto's van dit project (gevels en ramen)
+  let raamId = null;             // id van het raam dat open staat
+  let raamOpgeslagen = false;
+  let nieuweRaamFotos = [];      // foto's bij een nieuw raam dat nog niet is opgeslagen
+  let raamSchets = null;         // { kolommen, rijen, elementen }
+  let urls = [];
+  let gevelVoorFoto = "";
+  const FOTO_GEVELS = ["Voorzijde", "Achterzijde", "Linkerzijde", "Rechterzijde", "Dak", "Overig"];
 
   function $(id) { return document.getElementById(id); }
   function esc(t) {
@@ -73,7 +81,7 @@
     gevel: GEVELS, verdieping: VERDIEPINGEN, vorm: RAAMVORMEN,
     glaslatten_vervangen: ["Ja", "Nee"], ventilatierooster: ["Ja", "Nee"]
   };
-  document.querySelectorAll(".keuzeknoppen").forEach(function (blok) {
+  document.querySelectorAll(".keuzeknoppen[data-veld]").forEach(function (blok) {
     const veld = blok.dataset.veld;
     blok.innerHTML = KNOPPEN[veld].map(function (w) { return '<button type="button" data-waarde="' + esc(w) + '">' + esc(w) + '</button>'; }).join("");
     blok.addEventListener("click", function (e) {
@@ -81,10 +89,11 @@
       if (!k || !magBewerken) return;
       raamKeuzes[veld] = raamKeuzes[veld] === k.dataset.waarde ? "" : k.dataset.waarde;  // nog eens tikken = leegmaken
       zetKeuzeknoppen();
+      if (veld === "vorm") tekenSchetsMini();
     });
   });
   function zetKeuzeknoppen() {
-    document.querySelectorAll(".keuzeknoppen").forEach(function (blok) {
+    document.querySelectorAll(".keuzeknoppen[data-veld]").forEach(function (blok) {
       const veld = blok.dataset.veld;
       blok.querySelectorAll("button").forEach(function (k) { k.classList.toggle("actief", raamKeuzes[veld] === k.dataset.waarde); });
     });
@@ -173,7 +182,9 @@
     $("p-opnemer").innerHTML = '<option value="">– kies –</option>' + medewerkers
       .filter(function (m) { return m.actief && (groepVanFunctie(m.functie) === "opname" || m.rol === "beheerder"); })
       .map(function (m) { return '<option value="' + m.id + '">' + esc(m.voornaam + " " + m.achternaam) + '</option>'; }).join("");
+    projectBestanden = [];
     vulProjectvelden();
+    laadProjectBestanden();
     bewaardeVersie = o ? JSON.stringify(project) : "";
     melding("p-melding");
     kiesTab("project");
@@ -238,8 +249,11 @@
     const reken = raamRekenOppervlakte(r);
     const plaats = [r.gevel, r.verdieping].filter(Boolean).join(" · ");
     const maat = r.breedte && r.hoogte ? r.breedte + " × " + r.hoogte + " mm" : '<span class="oranje-tekst">maten ontbreken</span>';
+    const fotos = projectBestanden.filter(function (b) { return b.raam === r.id; }).length;
     return '<button type="button" class="raam-kaart" data-index="' + i + '">' +
-             '<span class="raam-nummer">' + esc(r.nummer) + '</span>' +
+             '<span class="raam-links"><span class="raam-nummer">' + esc(r.nummer) + '</span>' +
+               '<span class="raam-mini">' + Schets.svg(r.schets, r, { titel: false, maten: false }) + '</span>' +
+               (fotos ? '<span class="zacht">📷 ' + fotos + '</span>' : "") + '</span>' +
              '<span class="raam-tekst">' +
                '<strong>' + esc(r.ruimte || "Raam " + r.nummer) + '</strong>' +
                '<span class="zacht">' + esc(plaats || "plaats niet ingevuld") + '</span>' +
@@ -298,6 +312,10 @@
       glaslatten_vervangen: "", afstandhouder: "", afstandhouder_kleur: "", ventilatierooster: "", schade: "",
       materieel: [], bereikbaarheid: "", opmerkingen: ""
     }, voorinvulling || {});
+    raamId = r.id || Opslag.nieuwId();
+    raamOpgeslagen = false;
+    nieuweRaamFotos = [];
+    raamSchets = JSON.parse(JSON.stringify(r.schets || { kolommen: 1, rijen: 1, elementen: [] }));
     $("r-titel").textContent = index >= 0 ? "Raam " + r.nummer + (r.ruimte ? " – " + r.ruimte : "") : "Nieuw raam";
     const zet = function (id, w) { $(id).value = w === undefined || w === null ? "" : w; };
     zet("r-nummer", r.nummer); zet("r-ruimte", r.ruimte); zet("r-aantal", r.aantal_ruiten || 1);
@@ -310,6 +328,8 @@
     zetKeuzeknoppen();
     document.querySelectorAll("#r-materieel input").forEach(function (v) { v.checked = (r.materieel || []).indexOf(v.value) !== -1; });
     toonOpp();
+    tekenRaamFotos();
+    tekenSchetsMini();
     $("r-verwijder").hidden = index < 0;
     $("r-kopie").hidden = index < 0;
     melding("r-melding");
@@ -324,11 +344,12 @@
     $("r-opp").innerHTML = opp ? m2(opp) + (Math.abs(reken - opp) > 0.004
       ? '<span class="minimum">berekend als ' + m2(reken) + '<br>(minimum ' + m2(MINIMUM_M2_PER_RUIT) + ' per ruit)</span>' : "") : "–";
   }
-  ["r-breedte", "r-hoogte", "r-aantal"].forEach(function (id) { $(id).addEventListener("input", toonOpp); });
+  ["r-breedte", "r-hoogte", "r-aantal"].forEach(function (id) { $(id).addEventListener("input", function () { toonOpp(); tekenSchetsMini(); }); });
 
   function leesRaam() {
     return {
-      id: huidigRaam >= 0 ? project.ramen[huidigRaam].id : Opslag.nieuwId(),
+      id: raamId,
+      schets: raamSchets,
       nummer: String($("r-nummer").value.trim() || volgendNummer()).padStart(2, "0"),
       ruimte: $("r-ruimte").value.trim(), aantal_ruiten: Number($("r-aantal").value) || 1,
       gevel: raamKeuzes.gevel || "", verdieping: raamKeuzes.verdieping || "",
@@ -359,6 +380,7 @@
     }
     $("r-melding").dataset.gewaarschuwd = "";
     if (huidigRaam >= 0) project.ramen[huidigRaam] = r; else project.ramen.push(r);
+    raamOpgeslagen = true;
     // Automatisch bewaren (lukt pas als de klantnaam is ingevuld)
     const ok = await bewaarProject(true);
     $("raam").close();
@@ -380,6 +402,7 @@
     const van = project.ramen[huidigRaam].nummer;
     const kopie = leesRaam();
     delete kopie.id;
+    kopie.schets = JSON.parse(JSON.stringify(raamSchets));
     kopie.nummer = volgendNummer();
     $("raam").close();
     openRaam(-1, kopie);
@@ -390,6 +413,10 @@
     const r = project.ramen[huidigRaam];
     if (!confirm("Raam " + r.nummer + (r.ruimte ? " (" + r.ruimte + ")" : "") + " verwijderen?")) return;
     project.ramen.splice(huidigRaam, 1);
+    // Foto's van dit raam ook weghalen
+    for (const b of projectBestanden.filter(function (x) { return x.raam === r.id; })) await Opslag.verwijder("bestanden", b.id);
+    projectBestanden = projectBestanden.filter(function (x) { return x.raam !== r.id; });
+    raamOpgeslagen = true;
     $("raam").close();
     await bewaarProject(true);
     tekenRamen();
@@ -412,6 +439,249 @@
       tekenRamen();
     });
   });
+
+  // ---------- Foto's ----------
+  function verkleinFoto(bestand) {
+    return new Promise(function (klaar) {
+      const img = new Image();
+      const u = URL.createObjectURL(bestand);
+      img.onload = function () {
+        const schaal = Math.min(1, 1600 / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * schaal); c.height = Math.round(img.height * schaal);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(u);
+        c.toBlob(function (blob) { klaar(blob || bestand); }, "image/jpeg", 0.82);
+      };
+      img.onerror = function () { URL.revokeObjectURL(u); klaar(bestand); };
+      img.src = u;
+    });
+  }
+
+  async function laadProjectBestanden() {
+    projectBestanden = project && project.id
+      ? (await Opslag.alle("bestanden")).filter(function (b) { return b.opname === project.id; })
+          .sort(function (a, b) { return (a.aangemaakt_op || "").localeCompare(b.aangemaakt_op || ""); })
+      : [];
+    tekenGevelfotos();
+    tekenRamen();
+  }
+
+  function miniatuur(b) {
+    const u = URL.createObjectURL(b.data); urls.push(u);
+    return '<div class="bestand">' +
+             '<button type="button" class="bestand-open" data-foto="' + b.id + '"><img src="' + u + '" alt=""></button>' +
+             (magBewerken ? '<button type="button" class="bestand-weg" data-foto-weg="' + b.id + '" aria-label="Foto verwijderen">✕</button>' : "") +
+           '</div>';
+  }
+
+  // Foto's van het gebouw, per gevel
+  function tekenGevelfotos() {
+    $("gevelfotos").innerHTML = FOTO_GEVELS.map(function (g) {
+      const lijst = projectBestanden.filter(function (b) { return !b.raam && b.gevel === g; });
+      if (!lijst.length && !magBewerken) return "";
+      return '<div class="gevel-tegel">' +
+               '<div class="gevel-tegel-kop"><strong>' + esc(g) + '</strong>' +
+                 (magBewerken ? '<button type="button" class="knop tweede klein" data-gevel-foto="' + esc(g) + '">📷 Foto</button>' : "") + '</div>' +
+               (lijst.length ? '<div class="bestanden">' + lijst.map(miniatuur).join("") + '</div>' : '<p class="zacht">Nog geen foto.</p>') +
+             '</div>';
+    }).join("") || '<p class="zacht">Geen foto\'s.</p>';
+  }
+
+  function tekenRaamFotos() {
+    const lijst = projectBestanden.filter(function (b) { return b.raam === raamId; });
+    $("r-fotos").innerHTML = lijst.length ? lijst.map(miniatuur).join("") : '<p class="zacht" style="margin:0 0 8px">Nog geen foto\'s van dit raam.</p>';
+  }
+
+  async function zorgDatProjectBewaardIs() {
+    if (project.id) return true;
+    const ok = await bewaarProject(true);
+    if (!ok) toast("Vul eerst de naam van de klant in (tabblad Project).", "waarschuwing");
+    return ok;
+  }
+
+  async function voegFotosToe(lijst, extra) {
+    if (!lijst || !lijst.length || !magBewerken) return [];
+    if (!(await zorgDatProjectBewaardIs())) return [];
+    const nieuw = [];
+    for (const bestand of Array.prototype.slice.call(lijst)) {
+      const data = await verkleinFoto(bestand);
+      const b = await Opslag.bewaar("bestanden", Object.assign({
+        opname: project.id, soort: "foto", naam: (bestand.name || "foto").replace(/\.[^.]+$/, "") + ".jpg",
+        type: data.type || "image/jpeg", grootte: data.size, data: data
+      }, extra));
+      projectBestanden.push(b);
+      nieuw.push(b);
+    }
+    return nieuw;
+  }
+
+  $("gevelfotos").addEventListener("click", function (e) {
+    const k = e.target.closest("[data-gevel-foto]");
+    if (k) { gevelVoorFoto = k.dataset.gevelFoto; $("gevel-bestand").click(); }
+  });
+  $("gevel-bestand").addEventListener("change", async function (e) {
+    const bestanden = Array.from(e.target.files); e.target.value = "";
+    const nieuw = await voegFotosToe(bestanden, { gevel: gevelVoorFoto, raam: "" });
+    if (nieuw.length) { tekenGevelfotos(); toast(nieuw.length + (nieuw.length === 1 ? " foto" : " foto's") + " toegevoegd bij " + gevelVoorFoto + ".", "goed"); }
+  });
+  $("r-foto-bestand").addEventListener("change", async function (e) {
+    const bestanden = Array.from(e.target.files); e.target.value = "";
+    $("r-foto-bezig").textContent = "Bezig met opslaan…";
+    const nieuw = await voegFotosToe(bestanden, { raam: raamId, gevel: raamKeuzes.gevel || "" });
+    $("r-foto-bezig").textContent = "";
+    if (huidigRaam < 0) nieuweRaamFotos = nieuweRaamFotos.concat(nieuw);
+    tekenRaamFotos();
+  });
+
+  // Foto bekijken of verwijderen (zowel bij gevels als bij ramen)
+  document.addEventListener("click", async function (e) {
+    const open = e.target.closest("[data-foto]");
+    if (open) {
+      const b = projectBestanden.find(function (x) { return x.id === open.dataset.foto; });
+      if (!b) return;
+      const u = URL.createObjectURL(b.data); urls.push(u);
+      $("kijker-img").src = u;
+      $("kijker-naam").textContent = b.raam ? "Raam" + (function () { const r = project.ramen.find(function (x) { return x.id === b.raam; }); return r ? " " + r.nummer : ""; })() : (b.gevel || "");
+      $("kijker").showModal();
+      return;
+    }
+    const weg = e.target.closest("[data-foto-weg]");
+    if (weg && confirm("Foto verwijderen?")) {
+      await Opslag.verwijder("bestanden", weg.dataset.fotoWeg);
+      projectBestanden = projectBestanden.filter(function (x) { return x.id !== weg.dataset.fotoWeg; });
+      nieuweRaamFotos = nieuweRaamFotos.filter(function (x) { return x.id !== weg.dataset.fotoWeg; });
+      tekenGevelfotos();
+      if ($("raam").open) tekenRaamFotos();
+      tekenRamen();
+    }
+  });
+  $("kijker").addEventListener("click", function () { $("kijker").close(); });
+
+  // Raamvenster dicht zonder opslaan: foto's van een nieuw raam opruimen
+  $("raam").addEventListener("close", async function () {
+    if (!raamOpgeslagen && nieuweRaamFotos.length) {
+      for (const b of nieuweRaamFotos) await Opslag.verwijder("bestanden", b.id);
+      const ids = nieuweRaamFotos.map(function (b) { return b.id; });
+      projectBestanden = projectBestanden.filter(function (b) { return ids.indexOf(b.id) === -1; });
+    }
+    nieuweRaamFotos = [];
+    tekenRamen();
+  });
+
+  // ---------- Schets ----------
+  function raamUitFormulier() {
+    return { nummer: $("r-nummer").value, ruimte: $("r-ruimte").value, breedte: $("r-breedte").value,
+             hoogte: $("r-hoogte").value, vorm: raamKeuzes.vorm || "Rechthoekig" };
+  }
+  function tekenSchetsMini() {
+    if (!raamSchets) return;
+    $("r-schets-mini").innerHTML = Schets.svg(Object.assign({}, raamSchets, { vorm: raamKeuzes.vorm }), raamUitFormulier(), { titel: false });
+  }
+
+  let schetsWerk = null, hulp = "kijk", bezig = null;
+  function tekenSchets(tijdelijk) {
+    const s = JSON.parse(JSON.stringify(schetsWerk));
+    if (tijdelijk) s.elementen.push(tijdelijk);
+    $("s-doek").innerHTML = Schets.svg(s, raamUitFormulier());
+    zetVormknoppen();
+  }
+  function zetVormknoppen() {
+    $("s-vorm").querySelectorAll("button").forEach(function (k) { k.classList.toggle("actief", k.dataset.waarde === schetsWerk.vorm); });
+  }
+  $("s-vorm").innerHTML = RAAMVORMEN.map(function (v) { return '<button type="button" data-waarde="' + esc(v) + '">' + esc(v) + '</button>'; }).join("");
+  $("s-vorm").addEventListener("click", function (e) {
+    const k = e.target.closest("button"); if (!k || !magBewerken) return;
+    schetsWerk.vorm = k.dataset.waarde; raamKeuzes.vorm = k.dataset.waarde; zetKeuzeknoppen(); tekenSchets();
+  });
+  ["s-kolommen", "s-rijen"].forEach(function (id) {
+    $(id).addEventListener("input", function () {
+      schetsWerk.kolommen = Math.min(12, Math.max(1, Number($("s-kolommen").value) || 1));
+      schetsWerk.rijen = Math.min(12, Math.max(1, Number($("s-rijen").value) || 1));
+      tekenSchets();
+    });
+  });
+  $("s-gereedschap").addEventListener("click", function (e) {
+    const k = e.target.closest("[data-hulp]"); if (!k) return;
+    hulp = k.dataset.hulp;
+    $("s-gereedschap").querySelectorAll("button").forEach(function (x) { x.classList.toggle("actief", x === k); });
+    $("s-uitleg").textContent = {
+      kijk: "De vorm en de maten komen uit het raamformulier. Kies een hulpmiddel om iets toe te voegen.",
+      maat: "Trek met je vinger een lijn van punt naar punt. Daarna vul je de maat in.",
+      tekst: "Tik op de plek waar de tekst moet komen.",
+      pen: "Teken met je vinger. Bijvoorbeeld een roede, een hor of een beschadiging."
+    }[hulp];
+    $("s-doek").classList.toggle("tekenen", hulp !== "kijk");
+  });
+
+  function puntInSchets(e) {
+    const svg = $("s-doek").querySelector("svg");
+    const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY;
+    const q = p.matrixTransform(svg.getScreenCTM().inverse());
+    return [Math.round(q.x), Math.round(q.y)];
+  }
+  $("s-doek").addEventListener("pointerdown", function (e) {
+    if (hulp === "kijk" || !magBewerken) return;
+    e.preventDefault();
+    $("s-doek").setPointerCapture(e.pointerId);
+    const p = puntInSchets(e);
+    if (hulp === "maat") bezig = { soort: "maat", x1: p[0], y1: p[1], x2: p[0], y2: p[1], tekst: "" };
+    if (hulp === "pen") bezig = { soort: "pen", punten: [p] };
+    if (hulp === "tekst") bezig = { soort: "tekst", x: p[0], y: p[1] };
+  });
+  $("s-doek").addEventListener("pointermove", function (e) {
+    if (!bezig) return;
+    const p = puntInSchets(e);
+    if (bezig.soort === "maat") { bezig.x2 = p[0]; bezig.y2 = p[1]; tekenSchets(bezig); }
+    if (bezig.soort === "pen") { bezig.punten.push(p); tekenSchets(bezig); }
+  });
+  $("s-doek").addEventListener("pointerup", function () {
+    if (!bezig) return;
+    const el = bezig; bezig = null;
+    if (el.soort === "maat") {
+      if (Math.hypot(el.x2 - el.x1, el.y2 - el.y1) < 20) { tekenSchets(); return; }
+      const t = prompt("Maat of tekst bij deze lijn (bijv. 450 mm):", "");
+      if (t === null) { tekenSchets(); return; }
+      el.tekst = t.trim();
+      schetsWerk.elementen.push(el);
+    } else if (el.soort === "tekst") {
+      const t = prompt("Tekst:", "");
+      if (t && t.trim()) { el.tekst = t.trim(); schetsWerk.elementen.push(el); }
+    } else if (el.soort === "pen" && el.punten.length > 1) {
+      schetsWerk.elementen.push(el);
+    }
+    tekenSchets();
+  });
+  $("s-terug").addEventListener("click", function () { schetsWerk.elementen.pop(); tekenSchets(); });
+  $("s-wis").addEventListener("click", function () {
+    if (schetsWerk.elementen.length && confirm("Alle eigen maatlijnen, teksten en tekeningen wissen? De vorm en hoofdmaten blijven staan.")) {
+      schetsWerk.elementen = []; tekenSchets();
+    }
+  });
+
+  function openSchets() {
+    schetsWerk = Object.assign({ kolommen: 1, rijen: 1, elementen: [] }, JSON.parse(JSON.stringify(raamSchets)));
+    schetsWerk.vorm = raamKeuzes.vorm || "Rechthoekig";
+    $("s-titel").textContent = "Schets raam " + ($("r-nummer").value || "") + ($("r-ruimte").value ? " – " + $("r-ruimte").value : "");
+    $("s-kolommen").value = schetsWerk.kolommen || 1;
+    $("s-rijen").value = schetsWerk.rijen || 1;
+    hulp = "kijk";
+    $("s-gereedschap").querySelectorAll("button").forEach(function (x) { x.classList.toggle("actief", x.dataset.hulp === "kijk"); });
+    $("s-doek").classList.remove("tekenen");
+    document.querySelectorAll("#schets-venster input").forEach(function (el) { el.disabled = !magBewerken; });
+    ["s-terug", "s-wis"].forEach(function (id) { $(id).hidden = !magBewerken; });
+    $("s-gereedschap").hidden = !magBewerken;
+    tekenSchets();
+    $("schets-venster").showModal();
+  }
+  $("r-schets-knop").addEventListener("click", openSchets);
+  $("r-schets-mini").addEventListener("click", openSchets);
+  $("s-opslaan").addEventListener("click", function () {
+    raamSchets = { kolommen: schetsWerk.kolommen, rijen: schetsWerk.rijen, elementen: schetsWerk.elementen };
+    $("schets-venster").close();
+    tekenSchetsMini();
+  });
+  document.querySelectorAll("[data-schets-sluit]").forEach(function (k) { k.addEventListener("click", function () { $("schets-venster").close(); }); });
 
   // ---------- Materieel ----------
   function tekenMaterieel() {
