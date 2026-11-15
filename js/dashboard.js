@@ -68,6 +68,8 @@
     const afwezigheid = await Opslag.alle("afwezigheid");
     const voertuigen = await Opslag.alle("voertuigen");
     const gereedschap = await Opslag.alle("gereedschap");
+    await Voorbeeld.zorgVoorOpname();
+    const opnames = await Opslag.alle("opnames");
     await Werkopdracht.laadGegevens();
 
     const actief = medewerkers.filter(function (m) { return m.actief; });
@@ -213,7 +215,14 @@
         link: "gereedschap.html"
       });
     }
-    html += tegel({ label: "Glasopnames", getal: "–", status: "grijs", tekst: "volgt in fase 5" });
+    const weekGeleden = iso(plus(vandaag, -7));
+    const nieuweOpnames = opnames.filter(function (o) { return o.datum && o.datum >= weekGeleden; }).length;
+    const uitwerken = opnames.filter(function (o) { return o.status === "nieuw" || o.status === "uitwerken"; });
+    if (rol !== "wagenpark") {
+      html += tegel({ label: "Glasopnames", getal: uitwerken.length,
+                      status: uitwerken.length ? "oranje" : opnames.length ? "groen" : "grijs",
+                      tekst: "uit te werken · " + nieuweOpnames + " nieuw deze week", link: "opnames.html" });
+    }
     document.getElementById("tegels").innerHTML = html;
 
     // Actie nodig: eerst rood, dan oranje

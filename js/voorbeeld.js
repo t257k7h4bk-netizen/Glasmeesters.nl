@@ -310,7 +310,48 @@ const Voorbeeld = (function () {
     return true;
   }
 
+  // ----- Voorbeeldopname (fictief) -----
+  async function zorgVoorOpname() {
+    const vlag = (await Opslag.haal("instellingen", "voorbeeld")) || { id: "voorbeeld" };
+    if (vlag.opname) return false;
+    if ((await Opslag.alle("opnames")).length === 0) {
+      const mensen = await Opslag.alle("medewerkers");
+      const henk = mensen.find(function (m) { return m.voornaam === "Henk" && m.achternaam === "Dijkstra"; });
+      const basis = { glas_huidig: "Dubbel glas", glas_nieuw: "HR++", kozijn: "Houten kozijn", beglazing: "Buitenbeglazing",
+                      kitsoort: "Beglazingskit", glaslat_soort: "Houten glaslatten", glaslat_profiel: "Schuin", glaslat_maten: "18 × 22 mm",
+                      afstandhouder: "Aluminium", afstandhouder_kleur: "Zilver / aluminium", aantal_ruiten: 1, vorm: "Rechthoekig",
+                      glasdikte: "24", spouwbreedte: "12", ventilatierooster: "Nee", schade: "", bereikbaarheid: "", opmerkingen: "", vorm_toelichting: "" };
+      const raam = function (nr, ruimte, gevel, verdieping, b, h, extra) {
+        return Object.assign({ id: Opslag.nieuwId(), nummer: nr, ruimte: ruimte, gevel: gevel, verdieping: verdieping,
+          breedte: String(b), hoogte: String(h), glaslatten_vervangen: "Ja", materieel: ["glaszuigers"] }, basis, extra || {});
+      };
+      const t = (await Opslag.haal("instellingen", "teller_opname")) || { id: "teller_opname" };
+      t.jaar = new Date().getFullYear(); t.laatste = (t.laatste || 0) + 1;
+      await Opslag.bewaar("instellingen", t);
+      await Opslag.bewaar("opnames", {
+        nummer: "OP-" + t.jaar + "-" + String(t.laatste).padStart(4, "0"), datum: dag(-3), status: "uitwerken",
+        klant: "Familie Kok", telefoon: "050-0000007", email: "familie.kok@example.com", adres: "Dorpsstraat 2, 9751 AA Haren",
+        gebouwtype: "Woning", bouwjaar: "1934", opnemer: henk ? henk.id : "", voorbeeld: true,
+        opmerkingen: "Jaren-30 woning. Klant wil alle ramen naar HR++, glas-in-lood bovenlichten behouden.",
+        materieel: { steiger: { nodig: false, toelichting: "" }, hoogwerker: { nodig: true, toelichting: "Voor de ramen op de verdieping aan de voorzijde, smalle stoep" } },
+        personen: "2", duur_uren: "14", bereikbaarheid: "Parkeren op de oprit mogelijk. Achterom via de tuin.",
+        ramen: [
+          raam("01", "Woonkamer", "Voorzijde", "Begane grond", 1850, 1600, { aantal_ruiten: 2, materieel: ["glaszuigers", "glasbok"] }),
+          raam("02", "Woonkamer bovenlicht", "Voorzijde", "Begane grond", 1850, 450, { glas_huidig: "Glas-in-lood", glas_nieuw: "Glas-in-lood", glaslatten_vervangen: "Nee",
+            opmerkingen: "Glas-in-lood behouden; isoleren met voorzetbeglazing bespreken.", materieel: [] }),
+          raam("03", "Slaapkamer voor", "Voorzijde", "1e verdieping", 1200, 1400, { materieel: ["glaszuigers", "hoogwerker"], bereikbaarheid: "Alleen van buitenaf" }),
+          raam("04", "Keuken", "Achterzijde", "Begane grond", 1000, 1100, { schade: "Glaslat links onder rot" }),
+          raam("05", "Badkamer", "Linkerzijde", "1e verdieping", 600, 800, { glas_nieuw: "Figuurglas", materieel: ["ladder"] })
+        ]
+      });
+    }
+    vlag.opname = true;
+    await Opslag.bewaar("instellingen", vlag);
+    return true;
+  }
+
   return {
+    zorgVoorOpname: zorgVoorOpname,
     zorgVoorMedewerkers: zorgVoorMedewerkers,
     herstelMedewerkers: herstelMedewerkers,
     zorgVoorPlanning: zorgVoorPlanning,

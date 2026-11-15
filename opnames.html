@@ -9,17 +9,180 @@
   <link rel="icon" href="img/icoon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="img/icoon-180.png">
   <link rel="stylesheet" href="css/stijl.css">
+  <link rel="stylesheet" href="css/opnames.css">
 </head>
 <body data-pagina="opnames">
 
   <main class="inhoud">
-    <h1>Opnames</h1>
-    <p class="ondertitel">Ramen inmeten bij de klant, met maten, foto's en schetsen.</p>
-    <div class="binnenkort">
-      Dit onderdeel bouwen we in <strong>fase 5</strong>.
-    </div>
+
+    <!-- ============ LIJST MET OPNAMES ============ -->
+    <section id="lijst-scherm">
+      <div class="paginakop">
+        <div>
+          <h1>Opnames</h1>
+          <p class="ondertitel" id="samenvatting">Bezig met laden…</p>
+        </div>
+        <button class="knop alleen-opnemer" id="nieuw">+ Nieuwe opname</button>
+      </div>
+      <div class="filterbalk">
+        <input type="search" id="zoek" placeholder="Zoek op klant, adres of projectnummer…" aria-label="Zoeken">
+        <select id="status-filter" aria-label="Status"><option value="">Alle statussen</option></select>
+        <select id="opnemer-filter" aria-label="Opnemer"><option value="">Alle opnemers</option></select>
+      </div>
+      <div class="opdrachten" id="lijst"></div>
+    </section>
+
+    <!-- ============ ÉÉN PROJECT ============ -->
+    <section id="project-scherm" hidden>
+      <div class="project-kop">
+        <button type="button" class="knop tweede klein" id="terug">‹ Opnames</button>
+        <div class="project-titel">
+          <h1 id="p-titel">Nieuwe opname</h1>
+          <span class="zacht" id="p-sub"></span>
+        </div>
+        <div class="project-acties">
+          <span class="zacht" id="p-bewaard"></span>
+          <button type="button" class="knop alleen-opnemer" id="p-opslaan">Opslaan</button>
+        </div>
+      </div>
+
+      <div class="knoppengroep tabbladen" role="tablist">
+        <button type="button" data-tab="project" class="actief">Project</button>
+        <button type="button" data-tab="ramen">Ramen <span id="tab-ramen-aantal"></span></button>
+        <button type="button" data-tab="materieel">Materieel</button>
+      </div>
+
+      <div class="melding" id="p-melding"></div>
+
+      <!-- Tab: project -->
+      <div class="tab" id="tab-project">
+        <div class="kaart">
+          <div class="velden-3">
+            <div class="veld"><label>Projectnummer</label><input id="p-nummer" disabled placeholder="Volgt bij opslaan"></div>
+            <div class="veld"><label for="p-datum">Datum opname</label><input id="p-datum" type="date"></div>
+            <div class="veld"><label for="p-status">Status</label><select id="p-status"></select></div>
+            <div class="veld"><label for="p-klant">Naam klant</label><input id="p-klant" placeholder="Bijv. Familie Kok"></div>
+            <div class="veld"><label for="p-tel">Telefoon</label><input id="p-tel" type="tel" inputmode="tel"></div>
+            <div class="veld"><label for="p-mail">E-mail</label><input id="p-mail" type="email"></div>
+          </div>
+          <div class="veld"><label for="p-adres">Adres</label><input id="p-adres" class="vol" placeholder="Straat en huisnummer, postcode, plaats"></div>
+          <div class="velden-3">
+            <div class="veld"><label for="p-gebouw">Type gebouw</label><select id="p-gebouw"></select></div>
+            <div class="veld"><label for="p-bouwjaar">Bouwjaar (indien bekend)</label><input id="p-bouwjaar" type="number" inputmode="numeric" min="1500" max="2100"></div>
+            <div class="veld"><label for="p-opnemer">Opnemer</label><select id="p-opnemer"></select></div>
+          </div>
+          <div class="veld"><label for="p-opm">Algemene opmerkingen</label><textarea id="p-opm" rows="3" class="vol"></textarea></div>
+        </div>
+      </div>
+
+      <!-- Tab: ramen -->
+      <div class="tab" id="tab-ramen" hidden>
+        <div class="ramen-balk">
+          <div class="zacht" id="ramen-totaal"></div>
+          <div class="knoppengroep klein-groep" role="group" aria-label="Indeling">
+            <button type="button" data-indeling="nummer" class="actief">Op nummer</button>
+            <button type="button" data-indeling="gevel">Per gevel</button>
+          </div>
+          <button type="button" class="knop alleen-opnemer" id="raam-nieuw">+ Raam toevoegen</button>
+        </div>
+        <div id="ramen"></div>
+      </div>
+
+      <!-- Tab: materieel -->
+      <div class="tab" id="tab-materieel" hidden>
+        <div class="kaart">
+          <h2>Benodigd materieel</h2>
+          <p class="uitleg">Wat er bij de ramen is aangevinkt, telt automatisch mee. Vink hier aan wat voor het hele project nodig is
+            en geef een toelichting (bijv. "kraan 30 meter, vergunning gemeente nodig").</p>
+          <div id="materieel"></div>
+        </div>
+        <div class="kaart" style="margin-top:16px">
+          <h2>Uitvoering</h2>
+          <div class="velden-3">
+            <div class="veld"><label for="p-personen">Aantal personen nodig</label><input id="p-personen" type="number" inputmode="numeric" min="1"></div>
+            <div class="veld"><label for="p-duur">Geschatte duur (uren)</label><input id="p-duur" type="number" inputmode="decimal" min="0" step="0.5"></div>
+          </div>
+          <div class="veld"><label for="p-bereik">Bereikbaarheid en parkeren</label><textarea id="p-bereik" rows="2" class="vol" placeholder="Bijv. smalle straat, bus kan niet voor de deur, achterom via steeg"></textarea></div>
+        </div>
+      </div>
+    </section>
   </main>
 
+  <!-- ============ RAAMFORMULIER ============ -->
+  <dialog id="raam" class="venster breed-venster">
+    <form id="raam-form" method="dialog">
+      <div class="venster-kop">
+        <h2 id="r-titel">Raam</h2>
+        <button type="button" class="sluit" data-raam-sluit aria-label="Sluiten">✕</button>
+      </div>
+      <div class="venster-inhoud">
+
+        <h3 class="sectie">Plaats</h3>
+        <div class="velden-3">
+          <div class="veld"><label for="r-nummer">Raamnummer</label><input id="r-nummer" inputmode="numeric"></div>
+          <div class="veld"><label for="r-ruimte">Ruimte / omschrijving</label><input id="r-ruimte" placeholder="Bijv. woonkamer"></div>
+          <div class="veld"><label for="r-aantal">Aantal ruiten</label><input id="r-aantal" type="number" inputmode="numeric" min="1"></div>
+        </div>
+        <div class="veld"><label>Gevel</label><div class="keuzeknoppen" data-veld="gevel" id="r-gevel"></div></div>
+        <div class="veld"><label>Verdieping</label><div class="keuzeknoppen" data-veld="verdieping" id="r-verdieping"></div></div>
+
+        <h3 class="sectie">Maten</h3>
+        <div class="velden-3">
+          <div class="veld"><label for="r-breedte">Breedte (mm)</label><input id="r-breedte" type="number" inputmode="numeric" min="0" class="groot-getal"></div>
+          <div class="veld"><label for="r-hoogte">Hoogte (mm)</label><input id="r-hoogte" type="number" inputmode="numeric" min="0" class="groot-getal"></div>
+          <div class="veld"><label>Oppervlakte</label><div class="opp" id="r-opp">–</div></div>
+          <div class="veld"><label for="r-dikte">Glasdikte (mm)</label><input id="r-dikte" type="number" inputmode="decimal" min="0" step="0.1"></div>
+          <div class="veld"><label for="r-spouw">Spouwbreedte (mm)</label><input id="r-spouw" type="number" inputmode="decimal" min="0" step="0.1"></div>
+        </div>
+        <div class="veld"><label>Vorm</label><div class="keuzeknoppen" data-veld="vorm" id="r-vorm"></div></div>
+        <div class="veld" id="r-vorm-toel-veld"><label for="r-vorm-toel">Toelichting afwijkende vorm</label><input id="r-vorm-toel" class="vol"></div>
+
+        <h3 class="sectie">Glas en kozijn</h3>
+        <div class="velden-3">
+          <div class="veld"><label for="r-glas-huidig">Huidig glas</label><select id="r-glas-huidig"></select></div>
+          <div class="veld"><label for="r-glas-nieuw">Nieuw glas</label><select id="r-glas-nieuw"></select></div>
+          <div class="veld"><label for="r-kozijn">Kozijnsoort</label><select id="r-kozijn"></select></div>
+          <div class="veld"><label for="r-beglazing">Binnen- of buitenbeglazing</label><select id="r-beglazing"></select></div>
+          <div class="veld"><label for="r-kit">Aanwezige kitsoort</label><select id="r-kit"></select></div>
+        </div>
+
+        <h3 class="sectie">Glaslatten</h3>
+        <div class="velden-3">
+          <div class="veld"><label for="r-glaslat">Soort glaslatten</label><select id="r-glaslat"></select></div>
+          <div class="veld"><label for="r-profiel">Glaslatprofiel</label><input id="r-profiel" placeholder="Bijv. vlak, schuin, profiel 12"></div>
+          <div class="veld"><label for="r-latmaat">Afmetingen glaslatten</label><input id="r-latmaat" placeholder="Bijv. 18 × 22 mm"></div>
+        </div>
+        <div class="veld"><label>Glaslatten vervangen?</label><div class="keuzeknoppen" data-veld="glaslatten_vervangen" id="r-vervangen"></div></div>
+
+        <h3 class="sectie">Aanvullend</h3>
+        <div class="velden-3">
+          <div class="veld"><label for="r-afst">Afstandhouder</label><select id="r-afst"></select></div>
+          <div class="veld"><label for="r-afst-kleur">Kleur afstandhouder</label><select id="r-afst-kleur"></select></div>
+          <div class="veld"><label>Ventilatierooster?</label><div class="keuzeknoppen" data-veld="ventilatierooster" id="r-vent"></div></div>
+        </div>
+        <div class="veld"><label for="r-schade">Schade of bijzonderheden</label><textarea id="r-schade" rows="2" class="vol"></textarea></div>
+        <div class="veld"><label>Benodigd materieel voor dit raam</label><div class="werkvakjes" id="r-materieel"></div></div>
+        <div class="veld"><label for="r-bereik">Bereikbaarheid van dit raam</label><input id="r-bereik" class="vol" placeholder="Bijv. alleen van buitenaf, boven de serre"></div>
+        <div class="veld"><label for="r-opm">Opmerkingen</label><textarea id="r-opm" rows="2" class="vol"></textarea></div>
+        <p class="zacht">Foto's per raam en de schetsfunctie volgen in stap 5b.</p>
+        <div class="melding" id="r-melding"></div>
+      </div>
+      <div class="venster-voet alleen-opnemer">
+        <button type="button" class="knop gevaar" id="r-verwijder">Verwijderen</button>
+        <button type="button" class="knop tweede" id="r-kopie">Kopiëren</button>
+        <span class="ruimte"></span>
+        <button type="button" class="knop tweede" id="r-volgend">Opslaan en volgend raam</button>
+        <button type="submit" class="knop">Opslaan</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
   <script src="js/layout.js"></script>
+  <script src="js/opslag.js"></script>
+  <script src="js/keuzelijsten.js"></script>
+  <script src="js/voorbeeld.js"></script>
+  <script src="js/opnames.js"></script>
 </body>
 </html>

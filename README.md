@@ -20,6 +20,7 @@ glasopnames, voertuigen en gereedschap in één programma.
 | `js/whatsapp.js` | WhatsApp-bericht samenstellen uit een werkopdracht (sjabloon aanpasbaar in Beheer) |
 | `voertuigen.html`, `js/voertuigen.js` | Wagenpark: APK, verzekering, onderhoud (datum en km), historie, inzet |
 | `gereedschap.html`, `js/gereedschap.js` | Gereedschap: keuringen, onderhoud, uitgifte, historie, inzet |
+| `opnames.html`, `js/opnames.js`, `css/opnames.css` | Glasopnames: project, ramen (maten, gevel, verdieping, glas, kozijn, glaslatten), materieel |
 | `beheer.html` | Instellingen (dagdelen), back-up downloaden/terugzetten, alles wissen |
 | `img/` | Pictogrammen voor het beginscherm van tablet en telefoon |
 | `manifest.webmanifest` | Zorgt dat het programma als app op het beginscherm kan |
@@ -41,7 +42,9 @@ glasopnames, voertuigen en gereedschap in één programma.
 - [x] Stap 4c – Voertuigenbeheer
 - [x] Stap 4d – Gereedschapsbeheer
 - [x] Stap 4e – Meldingen op het dashboard
-- [ ] Fase 5 – Glasopnames en inmeten
+- [x] Stap 5a – Opnameformulier, ramen met gevel en verdieping, materieel
+- [ ] Stap 5b – Foto's per raam en gevel, schetsfunctie
+- [ ] Stap 5c – Omzetten naar werkopdracht, PDF
 
 Tijdens het bouwen worden gegevens alleen lokaal in de browser opgeslagen en gebruiken we
 uitsluitend fictieve gegevens.

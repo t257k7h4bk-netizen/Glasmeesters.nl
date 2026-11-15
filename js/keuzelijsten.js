@@ -161,6 +161,53 @@ const ERVARING_VOOR_GLAS = {
   "Glas-in-lood": "ervaring_monument"
 };
 
+// ---------- Opnames (fase 5) ----------
+const GEBOUWTYPES = ["Woning", "Appartement", "Bedrijfspand", "Kantoor", "School", "Winkel", "Monument", "Overig"];
+const OPNAME_STATUS = [
+  { code: "nieuw",       naam: "Nieuw",              kleur: "blauw"  },
+  { code: "uitwerken",   naam: "Uitwerken",          kleur: "oranje" },
+  { code: "offerte",     naam: "Offerte verstuurd",  kleur: "goud"   },
+  { code: "akkoord",     naam: "Akkoord klant",      kleur: "groen"  },
+  { code: "omgezet",     naam: "Omgezet naar opdracht", kleur: "groen" },
+  { code: "vervallen",   naam: "Vervallen",          kleur: "grijs"  }
+];
+const GEVELS = ["Voorzijde", "Achterzijde", "Linkerzijde", "Rechterzijde", "Dak", "Binnen"];
+const VERDIEPINGEN = ["Begane grond", "1e verdieping", "2e verdieping", "3e verdieping of hoger", "Zolder", "Kelder / souterrain"];
+const RAAMVORMEN = ["Rechthoekig", "Vierkant", "Rond", "Driehoekig", "Schuin", "Gebogen", "Overig"];
+const KOZIJNSOORTEN = ["Houten kozijn", "Kunststof kozijn", "Aluminium kozijn", "Stalen kozijn", "Overig"];
+const GLASLAT_SOORTEN = ["Houten glaslatten", "Kunststof glaslatten", "Aluminium glaslatten", "Geen / stopverf", "Overig"];
+const BEGLAZING = ["Binnenbeglazing", "Buitenbeglazing"];
+const KITSOORTEN = ["Beglazingskit", "Siliconenkit", "MS-polymeer", "Acrylaatkit", "Stopverf", "Onbekend"];
+const AFSTANDHOUDERS = ["Aluminium", "Warm edge (kunststof)", "RVS", "Onbekend"];
+const KLEUREN_AFSTANDHOUDER = ["Zilver / aluminium", "Zwart", "Grijs", "Wit", "Bruin", "Onbekend"];
+// Extra materieel bij een opname; "bevoegdheid" = welk certificaat daar later bij nodig is
+const MATERIEEL_OPNAME = [
+  { code: "glaszuigers",   naam: "Glaszuigers" },
+  { code: "glaslift",      naam: "Glaslift" },
+  { code: "glasbok",       naam: "Glasbok / glastransport" },
+  { code: "ladder",        naam: "Ladder" },
+  { code: "rolsteiger",    naam: "Rolsteiger" },
+  { code: "steiger",       naam: "Steiger (vast)" },
+  { code: "hoogwerker",    naam: "Hoogwerker",    bevoegdheid: "hoogwerker" },
+  { code: "kraan",         naam: "Kraan",         bevoegdheid: "kraan" },
+  { code: "minihijskraan", naam: "Minihijskraan", bevoegdheid: "minihijskraan" },
+  { code: "verreiker",     naam: "Verreiker",     bevoegdheid: "verreiker" },
+  { code: "aanhanger",     naam: "Aanhanger" },
+  { code: "mankracht",     naam: "Extra mankracht (zwaar glas)" }
+];
+function materieelNaam(code) {
+  const m = MATERIEEL_OPNAME.find(function (x) { return x.code === code; });
+  return m ? m.naam : code;
+}
+function opnameStatusNaam(code) { const s = OPNAME_STATUS.find(function (x) { return x.code === code; }); return s ? s.naam : "Nieuw"; }
+function opnameStatusKleur(code) { const s = OPNAME_STATUS.find(function (x) { return x.code === code; }); return s ? s.kleur : "blauw"; }
+
+// Oppervlakte van een raam in m² (breedte × hoogte × aantal ruiten)
+function raamOppervlakte(r) {
+  const b = Number(r.breedte) || 0, h = Number(r.hoogte) || 0, n = Number(r.aantal_ruiten) || 1;
+  return (b * h * n) / 1000000;
+}
+
 // Status van een werkopdracht
 const STATUSSEN = [
   { code: "concept",      naam: "Concept",       kleur: "grijs"  },

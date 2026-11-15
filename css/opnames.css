@@ -1,0 +1,66 @@
+/* =========================================================
+   Glasmeesters Planner – opmaak van de opnames
+   Groot en duidelijk, zodat het op locatie op een tablet werkt.
+   ========================================================= */
+
+.alleen-lezen-opname .alleen-opnemer { display: none !important; }
+
+.project-kop { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.project-titel { flex: 1; min-width: 200px; }
+.project-titel h1 { margin: 0; }
+.project-acties { display: flex; align-items: center; gap: 12px; }
+
+.tabbladen { margin-bottom: 14px; }
+.tabbladen button { padding: 12px 20px; font-size: 16px; }
+
+.velden-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 16px; }
+.velden-3 input, .velden-3 select { width: 100%; }
+
+/* Grote keuzeknoppen voor gevel, verdieping, vorm en ja/nee */
+.keuzeknoppen { display: flex; flex-wrap: wrap; gap: 6px; }
+.keuzeknoppen button {
+  font: inherit; font-size: 15px; padding: 10px 14px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--lijn); background: var(--wit); color: var(--tekst); min-height: 44px;
+}
+.keuzeknoppen button:hover { border-color: var(--blauw); }
+.keuzeknoppen button.actief { background: var(--blauw); color: var(--wit); border-color: var(--blauw); font-weight: 600; }
+
+.groot-getal { font-size: 20px !important; font-weight: 600; }
+.opp { font-size: 20px; font-weight: 700; color: var(--blauw-donker); padding: 8px 0; }
+
+/* Ramen */
+.ramen-balk { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.ramen-balk > div:first-child { flex: 1; }
+.klein-groep button { padding: 8px 12px; font-size: 14px; }
+.ramen-raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+.gevel-kop { font-size: 16px; margin: 18px 0 8px; color: var(--blauw-donker); }
+.raam-kaart {
+  display: flex; gap: 12px; align-items: flex-start; text-align: left; font: inherit; color: inherit; cursor: pointer;
+  background: var(--wit); border: 1px solid var(--lijn); border-radius: var(--rand); padding: 12px;
+}
+.raam-kaart:hover { border-color: var(--blauw); }
+.raam-nummer {
+  flex-shrink: 0; width: 46px; height: 46px; border-radius: 10px; background: var(--blauw); color: var(--wit);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px;
+}
+.raam-tekst { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 15px; }
+.tag-materieel { background: #FDF1E2; border-color: #F0C890; color: #7A4508; }
+
+/* Materieel */
+.mat-rij {
+  display: grid; grid-template-columns: 240px 1fr 1.2fr; gap: 10px; align-items: center;
+  padding: 10px 0; border-bottom: 1px solid var(--lijn);
+}
+.mat-rij.aan { background: #FBF6E6; }
+.mat-rij .vinkje { padding-left: 6px; }
+.mat-toel { width: 100%; }
+.mat-ramen { font-size: 14px; }
+
+@media (max-width: 900px) {
+  .velden-3 { grid-template-columns: 1fr 1fr; }
+  .mat-rij { grid-template-columns: 1fr; gap: 4px; padding: 10px 6px; }
+}
+@media (max-width: 560px) {
+  .velden-3 { grid-template-columns: 1fr; }
+  .project-acties { width: 100%; justify-content: space-between; }
+}
