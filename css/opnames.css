@@ -27,6 +27,7 @@
 
 .groot-getal { font-size: 20px !important; font-weight: 600; }
 .opp { font-size: 20px; font-weight: 700; color: var(--blauw-donker); padding: 8px 0; }
+.minimum { display: block; font-size: 13px; font-weight: 600; color: #9A5A0C; }
 
 /* Ramen */
 .ramen-balk { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }

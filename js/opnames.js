@@ -115,6 +115,7 @@
     $("lijst").innerHTML = lijst.length ? lijst.map(function (o) {
       const ramen = o.ramen || [];
       const opp = ramen.reduce(function (t, r) { return t + raamOppervlakte(r); }, 0);
+      const reken = ramen.reduce(function (t, r) { return t + raamRekenOppervlakte(r); }, 0);
       const mat = projectMaterieel(o).filter(function (m) { return m.nodig; }).map(function (m) { return m.naam; });
       return '<button class="opdracht" data-id="' + o.id + '">' +
                '<span class="opdracht-links"><span class="nummer">' + esc(o.nummer) + '</span>' +
@@ -125,6 +126,7 @@
                '</span>' +
                '<span class="opdracht-rechts"><span>' + esc(o.datum ? datumNL(o.datum) : "") + '</span>' +
                  '<span class="zacht">' + ramen.length + (ramen.length === 1 ? " raam" : " ramen") + (opp ? " · " + m2(opp) : "") + '</span>' +
+                 (reken && Math.abs(reken - opp) > 0.004 ? '<span class="zacht">te berekenen ' + m2(reken) + '</span>' : "") +
                  (o.opnemer ? '<span class="zacht">' + esc(naamVan(o.opnemer)) + '</span>' : "") +
                '</span>' +
              '</button>';
@@ -233,6 +235,7 @@
   // ---------- Ramen ----------
   function raamRegel(r, i) {
     const opp = raamOppervlakte(r);
+    const reken = raamRekenOppervlakte(r);
     const plaats = [r.gevel, r.verdieping].filter(Boolean).join(" · ");
     const maat = r.breedte && r.hoogte ? r.breedte + " × " + r.hoogte + " mm" : '<span class="oranje-tekst">maten ontbreken</span>';
     return '<button type="button" class="raam-kaart" data-index="' + i + '">' +
@@ -241,6 +244,7 @@
                '<strong>' + esc(r.ruimte || "Raam " + r.nummer) + '</strong>' +
                '<span class="zacht">' + esc(plaats || "plaats niet ingevuld") + '</span>' +
                '<span>' + maat + (r.aantal_ruiten > 1 ? " · " + r.aantal_ruiten + " ruiten" : "") + (opp ? " · " + m2(opp) : "") + '</span>' +
+               (reken && Math.abs(reken - opp) > 0.004 ? '<span class="minimum">berekend als ' + m2(reken) + ' (minimum ' + m2(MINIMUM_M2_PER_RUIT) + ' per ruit)</span>' : "") +
                '<span class="tags">' +
                  (r.glas_nieuw ? '<span class="tag">' + esc(r.glas_nieuw) + '</span>' : "") +
                  (r.glaslatten_vervangen === "Ja" ? '<span class="tag">glaslatten vervangen</span>' : "") +
@@ -256,7 +260,9 @@
     $("tab-ramen-aantal").textContent = "(" + ramen.length + ")";
     const opp = ramen.reduce(function (t, r) { return t + raamOppervlakte(r); }, 0);
     const ruiten = ramen.reduce(function (t, r) { return t + (Number(r.aantal_ruiten) || 1); }, 0);
-    $("ramen-totaal").textContent = ramen.length ? ramen.length + " ramen · " + ruiten + " ruiten · totaal " + m2(opp) : "";
+    const reken = ramen.reduce(function (t, r) { return t + raamRekenOppervlakte(r); }, 0);
+    $("ramen-totaal").innerHTML = ramen.length ? ramen.length + " ramen · " + ruiten + " ruiten · werkelijk " + m2(opp) +
+      " · <strong>te berekenen " + m2(reken) + "</strong>" : "";
     if (!ramen.length) {
       $("ramen").innerHTML = '<div class="binnenkort">Nog geen ramen. Tik op <strong>+ Raam toevoegen</strong>.</div>';
       return;
@@ -313,8 +319,10 @@
   }
 
   function toonOpp() {
-    const opp = raamOppervlakte({ breedte: $("r-breedte").value, hoogte: $("r-hoogte").value, aantal_ruiten: $("r-aantal").value });
-    $("r-opp").textContent = opp ? m2(opp) : "–";
+    const r = { breedte: $("r-breedte").value, hoogte: $("r-hoogte").value, aantal_ruiten: $("r-aantal").value };
+    const opp = raamOppervlakte(r), reken = raamRekenOppervlakte(r);
+    $("r-opp").innerHTML = opp ? m2(opp) + (Math.abs(reken - opp) > 0.004
+      ? '<span class="minimum">berekend als ' + m2(reken) + '<br>(minimum ' + m2(MINIMUM_M2_PER_RUIT) + ' per ruit)</span>' : "") : "–";
   }
   ["r-breedte", "r-hoogte", "r-aantal"].forEach(function (id) { $(id).addEventListener("input", toonOpp); });
 
@@ -462,6 +470,7 @@
   (async function () {
     await Voorbeeld.zorgVoorAlles();
     await Voorbeeld.zorgVoorOpname();
+    await laadOpnameInstellingen();
     medewerkers = await Opslag.alle("medewerkers");
     opnames = await Opslag.alle("opnames");
     $("opnemer-filter").innerHTML += medewerkers.filter(function (m) { return groepVanFunctie(m.functie) === "opname"; })

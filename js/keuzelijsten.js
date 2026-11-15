@@ -202,10 +202,25 @@ function materieelNaam(code) {
 function opnameStatusNaam(code) { const s = OPNAME_STATUS.find(function (x) { return x.code === code; }); return s ? s.naam : "Nieuw"; }
 function opnameStatusKleur(code) { const s = OPNAME_STATUS.find(function (x) { return x.code === code; }); return s ? s.kleur : "blauw"; }
 
-// Oppervlakte van een raam in m² (breedte × hoogte × aantal ruiten)
+// Oppervlakte van een raam in m² (breedte × hoogte × aantal ruiten) – werkelijke maat, voor het bestellen
 function raamOppervlakte(r) {
   const b = Number(r.breedte) || 0, h = Number(r.hoogte) || 0, n = Number(r.aantal_ruiten) || 1;
   return (b * h * n) / 1000000;
+}
+
+// Rekenregel prijs: elke ruit kleiner dan het minimum wordt als het minimum berekend.
+// Standaard 0,65 m² per ruit; aan te passen in Beheer (instelling "opname").
+let MINIMUM_M2_PER_RUIT = 0.65;
+function raamRekenOppervlakte(r, minimum) {
+  const min = minimum !== undefined ? minimum : MINIMUM_M2_PER_RUIT;
+  const b = Number(r.breedte) || 0, h = Number(r.hoogte) || 0, n = Number(r.aantal_ruiten) || 1;
+  if (!b || !h) return 0;
+  return Math.max((b * h) / 1000000, min) * n;
+}
+async function laadOpnameInstellingen() {
+  const s = await Opslag.haal("instellingen", "opname");
+  if (s && s.minimum_m2 !== undefined && s.minimum_m2 !== "") MINIMUM_M2_PER_RUIT = Number(s.minimum_m2);
+  return MINIMUM_M2_PER_RUIT;
 }
 
 // Status van een werkopdracht

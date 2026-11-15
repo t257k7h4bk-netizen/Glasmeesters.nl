@@ -44,6 +44,19 @@
         </form>
       </section>
 
+      <!-- Opnames en prijzen -->
+      <section class="kaart">
+        <h2>Opnames en prijzen</h2>
+        <p class="uitleg">Een ruit die kleiner is dan dit minimum, wordt voor de prijs als dit minimum berekend.
+          De werkelijke maat blijft bewaard voor het bestellen van glas.</p>
+        <div class="veld">
+          <label for="minimum-m2">Minimale oppervlakte per ruit (m²)</label>
+          <input type="number" id="minimum-m2" min="0" step="0.01" inputmode="decimal" style="width:140px">
+        </div>
+        <div class="knoppen"><button class="knop" id="minimum-opslaan">Opslaan</button></div>
+        <div class="melding" id="melding-minimum"></div>
+      </section>
+
       <!-- Back-up -->
       <section class="kaart">
         <h2>Back-up</h2>
@@ -209,6 +222,16 @@
       laadTellingen();
     });
 
+    // ----- Opnames: minimum oppervlakte -----
+    async function laadMinimum() { document.getElementById("minimum-m2").value = await laadOpnameInstellingen(); }
+    document.getElementById("minimum-opslaan").addEventListener("click", async function () {
+      const w = Number(String(document.getElementById("minimum-m2").value).replace(",", "."));
+      if (isNaN(w) || w < 0 || w > 10) { toon("melding-minimum", "fout", "Vul een getal in, bijvoorbeeld 0,65."); return; }
+      await Opslag.bewaar("instellingen", { id: "opname", minimum_m2: w });
+      MINIMUM_M2_PER_RUIT = w;
+      toon("melding-minimum", "goed", "Opgeslagen: ruiten kleiner dan " + w.toLocaleString("nl-NL") + " m² worden als " + w.toLocaleString("nl-NL") + " m² berekend.");
+    });
+
     // ----- Logboek -----
     async function laadLogboek() {
       const regels = (await Opslag.alle("logboek")).sort(function (a, b) { return (b.wanneer || "").localeCompare(a.wanneer || ""); }).slice(0, 50);
@@ -245,6 +268,7 @@
 
     laadDagdelen();
     laadSjabloon();
+    laadMinimum();
     laadLogboek();
     laadTellingen();
   }
