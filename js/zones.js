@@ -12,6 +12,7 @@
 
 const Zones = (function () {
   const BRON = "https://data.ndw.nu/api/rest/static-road-data/emission-zones/v1/map";
+  const EIGEN_BRON = "/api/zones";
   const EEN_DAG = 24 * 60 * 60 * 1000;
 
   // Standaardregels (stand november 2026) – aanpasbaar in Beheer
@@ -123,9 +124,7 @@ const Zones = (function () {
     const oud = !opgeslagen || !opgeslagen.opgehaald_op || (Date.now() - new Date(opgeslagen.opgehaald_op).getTime() > EEN_DAG);
     if (!o.alleenOpgeslagen && (o.opnieuw || (oud && (!opgeslagen || opgeslagen.bron !== "bestand")))) {
       try {
-        const antwoord = await fetch(BRON, { headers: { Accept: "application/json" } });
-        if (!antwoord.ok) throw new Error("de bron gaf foutcode " + antwoord.status);
-        const zones = verwerk(await antwoord.json());
+        const zones = verwerk(await haalBron());
         if (!zones.length) throw new Error("er zaten geen zones in het antwoord");
         await bewaar(zones, "ndw");
       } catch (e) {
@@ -134,6 +133,22 @@ const Zones = (function () {
     }
     return ZONES;
   }
+  // Eerst via onze eigen server (/api/zones), want de browser mag het NDW niet
+  // rechtstreeks lezen. Lukt dat niet (bijv. bij testen op de eigen computer),
+  // dan rechtstreeks proberen.
+  async function haalBron() {
+    const fouten = [];
+    for (const adres of [EIGEN_BRON, BRON]) {
+      try {
+        const antwoord = await fetch(adres, { headers: { Accept: "application/json" } });
+        const data = await antwoord.json().catch(function () { return null; });
+        if (!antwoord.ok || !data || data.fout) throw new Error((data && data.fout) || "foutcode " + antwoord.status);
+        return data;
+      } catch (e) { fouten.push((adres === EIGEN_BRON ? "eigen server: " : "NDW: ") + (e.message || e)); }
+    }
+    throw new Error(fouten.join("; "));
+  }
+
   async function bewaar(zones, bron) {
     ZONES = zones;
     INFO = { opgehaald_op: new Date().toISOString(), bron: bron, fout: "" };
@@ -239,7 +254,7 @@ const Zones = (function () {
   }
 
   return {
-    BRON: BRON, REGELS_STANDAARD: REGELS_STANDAARD, EMISSIEKLASSEN: EMISSIEKLASSEN, CATEGORIEEN: CATEGORIEEN,
+    BRON: BRON, EIGEN_BRON: EIGEN_BRON, haalBron: function () { return haalBron(); }, REGELS_STANDAARD: REGELS_STANDAARD, EMISSIEKLASSEN: EMISSIEKLASSEN, CATEGORIEEN: CATEGORIEEN,
     laad: laad, laadRegels: laadRegels, laadUitBestand: laadUitBestand, verwerk: verwerk,
     alle: function () { return ZONES; }, info: function () { return INFO; }, regels: function () { return REGELS; },
     op: op, bevat: bevat, actief: actief, toegang: toegang, controleerKlus: controleerKlus, categorie: categorie, klasse: klasse, rdNaarWgs: rdNaarWgs

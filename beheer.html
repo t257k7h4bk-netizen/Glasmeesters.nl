@@ -311,10 +311,10 @@
       uit.hidden = false;
       const r = [];
       r.push("Versie: " + VERSIE);
-      r.push("Bron: " + Zones.BRON);
+      r.push("Bron: " + Zones.EIGEN_BRON + " (via onze server) → " + Zones.BRON);
       try {
         const t0 = Date.now();
-        const antwoord = await fetch(Zones.BRON, { headers: { Accept: "application/json" } });
+        const antwoord = await fetch(Zones.EIGEN_BRON, { headers: { Accept: "application/json" } });
         r.push("Antwoord: " + antwoord.status + " " + antwoord.statusText + " (" + (Date.now() - t0) + " ms)");
         r.push("Soort: " + (antwoord.headers.get("content-type") || "onbekend"));
         const tekst = await antwoord.text();

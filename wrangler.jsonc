@@ -1,9 +1,14 @@
 // Instellingen voor Cloudflare: zet alle bestanden van het programma online.
+// worker/index.js is een kleine hulp voor adressen die met /api/ beginnen
+// (bijvoorbeeld het ophalen van de milieuzones).
 {
   "name": "glasmeesters-nl",
   "compatibility_date": "2026-11-01",
+  "main": "worker/index.js",
   "assets": {
     "directory": ".",
-    "not_found_handling": "404-page"
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*"]
   }
 }
