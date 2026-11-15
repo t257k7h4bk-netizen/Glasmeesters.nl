@@ -41,6 +41,10 @@
           <span class="zacht" id="p-sub"></span>
         </div>
         <div class="project-acties">
+          <div class="knoppengroep klein-groep modus-wissel" role="group" aria-label="Weergave">
+            <button type="button" data-modus="basis">Snel</button>
+            <button type="button" data-modus="uitgebreid">Uitgebreid</button>
+          </div>
           <span class="zacht" id="p-bewaard"></span>
           <button type="button" class="knop alleen-opnemer" id="p-opslaan">Opslaan</button>
         </div>
@@ -63,12 +67,14 @@
             <div class="veld"><label for="p-status">Status</label><select id="p-status"></select></div>
             <div class="veld"><label for="p-klant">Naam klant</label><input id="p-klant" placeholder="Bijv. Familie Kok"></div>
             <div class="veld"><label for="p-tel">Telefoon</label><input id="p-tel" type="tel" inputmode="tel"></div>
-            <div class="veld"><label for="p-mail">E-mail</label><input id="p-mail" type="email"></div>
+            <div class="veld alleen-uitgebreid"><label for="p-mail">E-mail</label><input id="p-mail" type="email"></div>
           </div>
           <div class="veld"><label for="p-adres">Adres</label><input id="p-adres" class="vol" placeholder="Straat en huisnummer, postcode, plaats"></div>
-          <div class="velden-3">
+          <div class="velden-3 alleen-uitgebreid">
             <div class="veld"><label for="p-gebouw">Type gebouw</label><select id="p-gebouw"></select></div>
             <div class="veld"><label for="p-bouwjaar">Bouwjaar (indien bekend)</label><input id="p-bouwjaar" type="number" inputmode="numeric" min="1500" max="2100"></div>
+          </div>
+          <div class="velden-3">
             <div class="veld"><label for="p-opnemer">Opnemer</label><select id="p-opnemer"></select></div>
           </div>
           <div class="veld"><label for="p-opm">Algemene opmerkingen</label><textarea id="p-opm" rows="3" class="vol"></textarea></div>
@@ -103,6 +109,10 @@
           <div id="materieel"></div>
         </div>
         <div class="kaart" style="margin-top:16px">
+          <h2>Ventilatieroosters</h2>
+          <div id="roosters-overzicht"></div>
+        </div>
+        <div class="kaart" style="margin-top:16px">
           <h2>Uitvoering</h2>
           <div class="velden-3">
             <div class="veld"><label for="p-personen">Aantal personen nodig</label><input id="p-personen" type="number" inputmode="numeric" min="1"></div>
@@ -119,6 +129,10 @@
     <form id="raam-form" method="dialog">
       <div class="venster-kop">
         <h2 id="r-titel">Raam</h2>
+        <div class="knoppengroep klein-groep modus-wissel" role="group" aria-label="Weergave">
+          <button type="button" data-modus="basis">Snel</button>
+          <button type="button" data-modus="uitgebreid">Uitgebreid</button>
+        </div>
         <button type="button" class="sluit" data-raam-sluit aria-label="Sluiten">✕</button>
       </div>
       <div class="venster-inhoud">
@@ -126,7 +140,7 @@
         <h3 class="sectie">Plaats</h3>
         <div class="velden-3">
           <div class="veld"><label for="r-nummer">Raamnummer</label><input id="r-nummer" inputmode="numeric"></div>
-          <div class="veld"><label for="r-ruimte">Ruimte / omschrijving</label><input id="r-ruimte" placeholder="Bijv. woonkamer"></div>
+          <div class="veld"><label for="r-ruimte">Ruimte</label><input id="r-ruimte" placeholder="Bijv. woonkamer"></div>
           <div class="veld"><label for="r-aantal">Aantal ruiten</label><input id="r-aantal" type="number" inputmode="numeric" min="1"></div>
         </div>
         <div class="veld"><label>Gevel</label><div class="keuzeknoppen" data-veld="gevel" id="r-gevel"></div></div>
@@ -137,39 +151,44 @@
           <div class="veld"><label for="r-breedte">Breedte (mm)</label><input id="r-breedte" type="number" inputmode="numeric" min="0" class="groot-getal"></div>
           <div class="veld"><label for="r-hoogte">Hoogte (mm)</label><input id="r-hoogte" type="number" inputmode="numeric" min="0" class="groot-getal"></div>
           <div class="veld"><label>Oppervlakte</label><div class="opp" id="r-opp">–</div></div>
-          <div class="veld"><label for="r-dikte">Glasdikte (mm)</label><input id="r-dikte" type="number" inputmode="decimal" min="0" step="0.1"></div>
-          <div class="veld"><label for="r-spouw">Spouwbreedte (mm)</label><input id="r-spouw" type="number" inputmode="decimal" min="0" step="0.1"></div>
+          <div class="veld alleen-uitgebreid"><label for="r-dikte">Glasdikte (mm)</label><input id="r-dikte" type="number" inputmode="decimal" min="0" step="0.1"></div>
+          <div class="veld alleen-uitgebreid"><label for="r-spouw">Spouwbreedte (mm)</label><input id="r-spouw" type="number" inputmode="decimal" min="0" step="0.1"></div>
         </div>
-        <div class="veld"><label>Vorm</label><div class="keuzeknoppen" data-veld="vorm" id="r-vorm"></div></div>
-        <div class="veld" id="r-vorm-toel-veld"><label for="r-vorm-toel">Toelichting afwijkende vorm</label><input id="r-vorm-toel" class="vol"></div>
+        <div class="veld alleen-uitgebreid"><label>Vorm</label><div class="keuzeknoppen" data-veld="vorm" id="r-vorm"></div></div>
+        <div class="veld alleen-uitgebreid" id="r-vorm-toel-veld"><label for="r-vorm-toel">Toelichting afwijkende vorm</label><input id="r-vorm-toel" class="vol"></div>
 
-        <h3 class="sectie">Glas en kozijn</h3>
+        <h3 class="sectie">Glas</h3>
         <div class="velden-3">
-          <div class="veld"><label for="r-glas-huidig">Huidig glas</label><select id="r-glas-huidig"></select></div>
           <div class="veld"><label for="r-glas-nieuw">Nieuw glas</label><select id="r-glas-nieuw"></select></div>
-          <div class="veld"><label for="r-kozijn">Kozijnsoort</label><select id="r-kozijn"></select></div>
-          <div class="veld"><label for="r-beglazing">Binnen- of buitenbeglazing</label><select id="r-beglazing"></select></div>
-          <div class="veld"><label for="r-kit">Aanwezige kitsoort</label><select id="r-kit"></select></div>
+          <div class="veld alleen-uitgebreid"><label for="r-glas-huidig">Huidig glas</label><select id="r-glas-huidig"></select></div>
+          <div class="veld alleen-uitgebreid"><label for="r-kozijn">Kozijnsoort</label><select id="r-kozijn"></select></div>
+          <div class="veld alleen-uitgebreid"><label for="r-beglazing">Binnen- of buitenbeglazing</label><select id="r-beglazing"></select></div>
+          <div class="veld alleen-uitgebreid"><label for="r-kit">Aanwezige kitsoort</label><select id="r-kit"></select></div>
         </div>
-
-        <h3 class="sectie">Glaslatten</h3>
-        <div class="velden-3">
+        <div class="veld"><label>Glaslatten vervangen?</label><div class="keuzeknoppen" data-veld="glaslatten_vervangen" id="r-vervangen"></div></div>
+        <div class="velden-3 alleen-uitgebreid">
           <div class="veld"><label for="r-glaslat">Soort glaslatten</label><select id="r-glaslat"></select></div>
           <div class="veld"><label for="r-profiel">Glaslatprofiel</label><input id="r-profiel" placeholder="Bijv. vlak, schuin, profiel 12"></div>
           <div class="veld"><label for="r-latmaat">Afmetingen glaslatten</label><input id="r-latmaat" placeholder="Bijv. 18 × 22 mm"></div>
-        </div>
-        <div class="veld"><label>Glaslatten vervangen?</label><div class="keuzeknoppen" data-veld="glaslatten_vervangen" id="r-vervangen"></div></div>
-
-        <h3 class="sectie">Aanvullend</h3>
-        <div class="velden-3">
           <div class="veld"><label for="r-afst">Afstandhouder</label><select id="r-afst"></select></div>
           <div class="veld"><label for="r-afst-kleur">Kleur afstandhouder</label><select id="r-afst-kleur"></select></div>
-          <div class="veld"><label>Ventilatierooster?</label><div class="keuzeknoppen" data-veld="ventilatierooster" id="r-vent"></div></div>
         </div>
-        <div class="veld"><label for="r-schade">Schade of bijzonderheden</label><textarea id="r-schade" rows="2" class="vol"></textarea></div>
+
+        <h3 class="sectie">Ventilatierooster</h3>
+        <div class="veld"><div class="keuzeknoppen" data-veld="rooster_soort" id="r-rooster"></div></div>
+        <div class="velden-3" id="r-rooster-velden">
+          <div class="veld"><label for="r-rooster-lengte">Lengte rooster (mm)</label><input id="r-rooster-lengte" type="number" inputmode="numeric" min="0"></div>
+          <div class="veld alleen-uitgebreid"><label for="r-rooster-aantal">Aantal</label><input id="r-rooster-aantal" type="number" inputmode="numeric" min="1"></div>
+          <div class="veld alleen-uitgebreid"><label for="r-rooster-kleur">Kleur</label><select id="r-rooster-kleur"></select></div>
+          <div class="veld alleen-uitgebreid"><label for="r-rooster-plaatsing">Plaatsing</label><select id="r-rooster-plaatsing"></select></div>
+        </div>
+
+        <h3 class="sectie">Materieel en opmerkingen</h3>
         <div class="veld"><label>Benodigd materieel voor dit raam</label><div class="werkvakjes" id="r-materieel"></div></div>
-        <div class="veld"><label for="r-bereik">Bereikbaarheid van dit raam</label><input id="r-bereik" class="vol" placeholder="Bijv. alleen van buitenaf, boven de serre"></div>
+        <div class="veld alleen-uitgebreid"><label for="r-schade">Schade of bijzonderheden</label><textarea id="r-schade" rows="2" class="vol"></textarea></div>
+        <div class="veld alleen-uitgebreid"><label for="r-bereik">Bereikbaarheid van dit raam</label><input id="r-bereik" class="vol" placeholder="Bijv. alleen van buitenaf, boven de serre"></div>
         <div class="veld"><label for="r-opm">Opmerkingen</label><textarea id="r-opm" rows="2" class="vol"></textarea></div>
+
         <h3 class="sectie">Schets en foto's</h3>
         <div class="schets-en-fotos">
           <div class="schets-blok">

@@ -180,6 +180,18 @@ const BEGLAZING = ["Binnenbeglazing", "Buitenbeglazing"];
 const KITSOORTEN = ["Beglazingskit", "Siliconenkit", "MS-polymeer", "Acrylaatkit", "Stopverf", "Onbekend"];
 const AFSTANDHOUDERS = ["Aluminium", "Warm edge (kunststof)", "RVS", "Onbekend"];
 const KLEUREN_AFSTANDHOUDER = ["Zilver / aluminium", "Zwart", "Grijs", "Wit", "Bruin", "Onbekend"];
+// Ventilatieroosters
+const ROOSTER_SOORTEN = ["Geen", "Gewoon rooster", "Isolerend rooster"];
+const ROOSTER_KLEUREN = ["Wit", "Zwart", "Aluminium (blank)", "Brons", "Crème", "Andere kleur (zie opmerking)"];
+const ROOSTER_PLAATSING = ["In het glas", "Op het kozijn (bovendorpel)", "In de glaslat"];
+// Oude opnames hadden alleen "ventilatierooster: Ja/Nee"
+function roosterSoort(r) {
+  if (r.rooster_soort) return r.rooster_soort;
+  if (r.ventilatierooster === "Ja") return "Gewoon rooster";
+  if (r.ventilatierooster === "Nee") return "Geen";
+  return "";
+}
+
 // Extra materieel bij een opname; "bevoegdheid" = welk certificaat daar later bij nodig is
 const MATERIEEL_OPNAME = [
   { code: "glaszuigers",   naam: "Glaszuigers" },

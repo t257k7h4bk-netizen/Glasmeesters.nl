@@ -79,8 +79,10 @@
   // Grote keuzeknoppen (fijn op een tablet): gevel, verdieping, vorm, ja/nee
   const KNOPPEN = {
     gevel: GEVELS, verdieping: VERDIEPINGEN, vorm: RAAMVORMEN,
-    glaslatten_vervangen: ["Ja", "Nee"], ventilatierooster: ["Ja", "Nee"]
+    glaslatten_vervangen: ["Ja", "Nee"], rooster_soort: ROOSTER_SOORTEN
   };
+  $("r-rooster-kleur").innerHTML = opties(ROOSTER_KLEUREN, "– kies –");
+  $("r-rooster-plaatsing").innerHTML = opties(ROOSTER_PLAATSING, "– kies –");
   document.querySelectorAll(".keuzeknoppen[data-veld]").forEach(function (blok) {
     const veld = blok.dataset.veld;
     blok.innerHTML = KNOPPEN[veld].map(function (w) { return '<button type="button" data-waarde="' + esc(w) + '">' + esc(w) + '</button>'; }).join("");
@@ -88,6 +90,11 @@
       const k = e.target.closest("button");
       if (!k || !magBewerken) return;
       raamKeuzes[veld] = raamKeuzes[veld] === k.dataset.waarde ? "" : k.dataset.waarde;  // nog eens tikken = leegmaken
+      // Rooster gekozen: lengte alvast gelijk aan de breedte van het raam
+      if (veld === "rooster_soort" && raamKeuzes.rooster_soort && raamKeuzes.rooster_soort !== "Geen" && !$("r-rooster-lengte").value) {
+        $("r-rooster-lengte").value = $("r-breedte").value;
+        if (!$("r-rooster-aantal").value) $("r-rooster-aantal").value = 1;
+      }
       zetKeuzeknoppen();
       if (veld === "vorm") tekenSchetsMini();
     });
@@ -98,6 +105,7 @@
       blok.querySelectorAll("button").forEach(function (k) { k.classList.toggle("actief", raamKeuzes[veld] === k.dataset.waarde); });
     });
     $("r-vorm-toel-veld").hidden = !raamKeuzes.vorm || raamKeuzes.vorm === "Rechthoekig" || raamKeuzes.vorm === "Vierkant";
+    $("r-rooster-velden").hidden = !raamKeuzes.rooster_soort || raamKeuzes.rooster_soort === "Geen";
   }
 
   // ---------- Projectnummer: OP-2026-0001 ----------
@@ -262,6 +270,8 @@
                '<span class="tags">' +
                  (r.glas_nieuw ? '<span class="tag">' + esc(r.glas_nieuw) + '</span>' : "") +
                  (r.glaslatten_vervangen === "Ja" ? '<span class="tag">glaslatten vervangen</span>' : "") +
+                 (roosterSoort(r) && roosterSoort(r) !== "Geen" ? '<span class="tag tag-rooster">' + esc(roosterSoort(r).replace(" rooster", "")) + " rooster" +
+                   (r.rooster_lengte ? " " + esc(r.rooster_lengte) + " mm" : "") + (r.rooster_aantal > 1 ? " × " + r.rooster_aantal : "") + '</span>' : "") +
                  (r.vorm && r.vorm !== "Rechthoekig" ? '<span class="tag">' + esc(r.vorm) + '</span>' : "") +
                  (r.materieel || []).map(function (c) { return '<span class="tag tag-materieel">' + esc(materieelNaam(c)) + '</span>'; }).join("") +
                '</span>' +
@@ -309,7 +319,8 @@
       nummer: volgendNummer(), ruimte: "", aantal_ruiten: 1, gevel: "", verdieping: "", breedte: "", hoogte: "",
       glasdikte: "", spouwbreedte: "", vorm: "Rechthoekig", vorm_toelichting: "", glas_huidig: "", glas_nieuw: "",
       kozijn: "", beglazing: "", kitsoort: "", glaslat_soort: "", glaslat_profiel: "", glaslat_maten: "",
-      glaslatten_vervangen: "", afstandhouder: "", afstandhouder_kleur: "", ventilatierooster: "", schade: "",
+      glaslatten_vervangen: "", afstandhouder: "", afstandhouder_kleur: "", schade: "",
+      rooster_soort: "", rooster_lengte: "", rooster_aantal: "", rooster_kleur: "", rooster_plaatsing: "",
       materieel: [], bereikbaarheid: "", opmerkingen: ""
     }, voorinvulling || {});
     raamId = r.id || Opslag.nieuwId();
@@ -323,8 +334,10 @@
     zet("r-vorm-toel", r.vorm_toelichting); zet("r-glas-huidig", r.glas_huidig); zet("r-glas-nieuw", r.glas_nieuw);
     zet("r-kozijn", r.kozijn); zet("r-beglazing", r.beglazing); zet("r-kit", r.kitsoort); zet("r-glaslat", r.glaslat_soort);
     zet("r-profiel", r.glaslat_profiel); zet("r-latmaat", r.glaslat_maten); zet("r-afst", r.afstandhouder);
-    zet("r-afst-kleur", r.afstandhouder_kleur); zet("r-schade", r.schade); zet("r-bereik", r.bereikbaarheid); zet("r-opm", r.opmerkingen);
-    raamKeuzes = { gevel: r.gevel, verdieping: r.verdieping, vorm: r.vorm, glaslatten_vervangen: r.glaslatten_vervangen, ventilatierooster: r.ventilatierooster };
+    zet("r-afst-kleur", r.afstandhouder_kleur); zet("r-schade", r.schade);
+    zet("r-rooster-lengte", r.rooster_lengte); zet("r-rooster-aantal", r.rooster_aantal);
+    zet("r-rooster-kleur", r.rooster_kleur); zet("r-rooster-plaatsing", r.rooster_plaatsing); zet("r-bereik", r.bereikbaarheid); zet("r-opm", r.opmerkingen);
+    raamKeuzes = { gevel: r.gevel, verdieping: r.verdieping, vorm: r.vorm, glaslatten_vervangen: r.glaslatten_vervangen, rooster_soort: roosterSoort(r) };
     zetKeuzeknoppen();
     document.querySelectorAll("#r-materieel input").forEach(function (v) { v.checked = (r.materieel || []).indexOf(v.value) !== -1; });
     toonOpp();
@@ -359,7 +372,12 @@
       beglazing: $("r-beglazing").value, kitsoort: $("r-kit").value, glaslat_soort: $("r-glaslat").value,
       glaslat_profiel: $("r-profiel").value.trim(), glaslat_maten: $("r-latmaat").value.trim(),
       glaslatten_vervangen: raamKeuzes.glaslatten_vervangen || "", afstandhouder: $("r-afst").value,
-      afstandhouder_kleur: $("r-afst-kleur").value, ventilatierooster: raamKeuzes.ventilatierooster || "",
+      afstandhouder_kleur: $("r-afst-kleur").value,
+      rooster_soort: raamKeuzes.rooster_soort || "",
+      rooster_lengte: raamKeuzes.rooster_soort && raamKeuzes.rooster_soort !== "Geen" ? $("r-rooster-lengte").value : "",
+      rooster_aantal: raamKeuzes.rooster_soort && raamKeuzes.rooster_soort !== "Geen" ? (Number($("r-rooster-aantal").value) || 1) : "",
+      rooster_kleur: $("r-rooster-kleur").value, rooster_plaatsing: $("r-rooster-plaatsing").value,
+      ventilatierooster: raamKeuzes.rooster_soort ? (raamKeuzes.rooster_soort === "Geen" ? "Nee" : "Ja") : "",
       schade: $("r-schade").value.trim(),
       materieel: Array.prototype.slice.call(document.querySelectorAll("#r-materieel input:checked")).map(function (x) { return x.value; }),
       bereikbaarheid: $("r-bereik").value.trim(), opmerkingen: $("r-opm").value.trim()
@@ -391,7 +409,8 @@
       // Volgend raam: plaats en glas alvast overnemen, dat scheelt typen
       openRaam(-1, { gevel: r.gevel, verdieping: r.verdieping, glas_huidig: r.glas_huidig, glas_nieuw: r.glas_nieuw,
                      kozijn: r.kozijn, beglazing: r.beglazing, kitsoort: r.kitsoort, glaslat_soort: r.glaslat_soort,
-                     afstandhouder: r.afstandhouder, afstandhouder_kleur: r.afstandhouder_kleur });
+                     afstandhouder: r.afstandhouder, afstandhouder_kleur: r.afstandhouder_kleur,
+                     rooster_soort: r.rooster_soort, rooster_kleur: r.rooster_kleur, rooster_plaatsing: r.rooster_plaatsing });
     }
   }
 
@@ -684,7 +703,29 @@
   document.querySelectorAll("[data-schets-sluit]").forEach(function (k) { k.addEventListener("click", function () { $("schets-venster").close(); }); });
 
   // ---------- Materieel ----------
+  function tekenRoosters() {
+    const groepen = {};
+    (project.ramen || []).forEach(function (r) {
+      const soort = roosterSoort(r);
+      if (!soort || soort === "Geen") return;
+      const sleutel = soort + "|" + (r.rooster_kleur || "") + "|" + (r.rooster_plaatsing || "");
+      const g = groepen[sleutel] = groepen[sleutel] || { soort: soort, kleur: r.rooster_kleur, plaatsing: r.rooster_plaatsing, stuks: 0, mm: 0, ramen: [] };
+      const n = Number(r.rooster_aantal) || 1;
+      g.stuks += n; g.mm += (Number(r.rooster_lengte) || 0) * n; g.ramen.push(r.nummer);
+    });
+    const lijst = Object.keys(groepen).map(function (k) { return groepen[k]; });
+    $("roosters-overzicht").innerHTML = lijst.length
+      ? '<table class="tabel"><thead><tr><th>Soort</th><th>Kleur</th><th>Plaatsing</th><th>Stuks</th><th>Totale lengte</th><th>Ramen</th></tr></thead><tbody>' +
+        lijst.map(function (g) {
+          return '<tr><td><strong>' + esc(g.soort) + '</strong></td><td>' + esc(g.kleur || "–") + '</td><td>' + esc(g.plaatsing || "–") + '</td><td>' + g.stuks +
+            '</td><td>' + (g.mm ? (g.mm / 1000).toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " m" : "–") +
+            '</td><td>' + esc(g.ramen.join(", ")) + '</td></tr>';
+        }).join("") + '</tbody></table>'
+      : '<p class="zacht">Geen ventilatieroosters bij de ramen van dit project.</p>';
+  }
+
   function tekenMaterieel() {
+    tekenRoosters();
     const lijst = projectMaterieel(project);
     $("materieel").innerHTML = lijst.map(function (m) {
       const uit = magBewerken ? "" : " disabled";
@@ -697,6 +738,17 @@
     }).join("");
   }
   $("materieel").addEventListener("change", function () { leesProjectvelden(); tekenMaterieel(); });
+
+  // ---------- Weergave: Snel of Uitgebreid (onthouden op dit apparaat) ----------
+  function zetModus(modus) {
+    try { localStorage.setItem("gm-opname-modus", modus); } catch (e) {}
+    document.body.classList.toggle("basis-modus", modus !== "uitgebreid");
+    document.querySelectorAll("[data-modus]").forEach(function (k) { k.classList.toggle("actief", k.dataset.modus === modus); });
+  }
+  let bewaardeModus = "basis";
+  try { bewaardeModus = localStorage.getItem("gm-opname-modus") || "basis"; } catch (e) {}
+  zetModus(bewaardeModus);
+  document.querySelectorAll("[data-modus]").forEach(function (k) { k.addEventListener("click", function () { zetModus(k.dataset.modus); }); });
 
   // ---------- Knoppen en navigatie ----------
   document.querySelectorAll("[data-tab]").forEach(function (k) {

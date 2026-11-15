@@ -95,3 +95,9 @@
   .schets-en-fotos { grid-template-columns: 1fr; }
   .schets-mini { width: 100%; }
 }
+
+/* ---------- Weergave Snel / Uitgebreid ---------- */
+.basis-modus .alleen-uitgebreid { display: none !important; }
+.modus-wissel button { padding: 8px 14px; }
+.venster-kop .modus-wissel { margin-left: auto; margin-right: 8px; }
+.tag-rooster { background: #E6EEF5; border-color: #B9CEE0; color: var(--blauw); }
